@@ -2,13 +2,23 @@ import { SignUp } from '@clerk/nextjs'
 
 export default function SignUpPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
-      <div className="w-full max-w-md px-6">
+    <div className="flex min-h-screen items-center justify-center bg-white px-8">
+      <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
+          <h1 className="text-[24px] font-semibold tracking-tight text-zinc-900 mb-2">
+            Get started with GitGuide
+          </h1>
+          <p className="text-[14px] text-zinc-600">
+            Transform repositories into learning journeys
+          </p>
+        </div>
         <SignUp 
           appearance={{
             elements: {
               rootBox: "mx-auto",
-              card: "shadow-sm border border-slate-200",
+              card: "shadow-none border border-zinc-200 rounded-lg",
+              headerTitle: "hidden",
+              headerSubtitle: "hidden",
             }
           }}
         />

@@ -14,40 +14,56 @@ export default async function DashboardPage() {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-slate-50">
-        <div className="max-w-5xl mx-auto px-6 py-12">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
+      <div className="min-h-screen bg-white">
+        <div className="max-w-5xl mx-auto px-8 py-16">
+          {/* Page Header */}
+          <div className="mb-16">
+            <h1 className="text-[32px] font-semibold tracking-tight text-zinc-900 mb-2">
               Dashboard
             </h1>
-            <p className="text-slate-600">
+            <p className="text-[15px] text-zinc-600">
               Welcome back, {user?.firstName || 'User'}
             </p>
           </div>
 
-          <div className="grid gap-6">
-            <div className="bg-white border border-slate-200 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">Profile</h2>
-              <div className="space-y-3">
+          {/* Content Grid */}
+          <div className="space-y-8">
+            {/* Profile Card */}
+            <div className="border border-zinc-200 rounded-lg p-8">
+              <h2 className="text-[16px] font-medium text-zinc-900 mb-6">Profile</h2>
+              <div className="space-y-4">
                 <div className="flex items-start">
-                  <span className="text-sm font-medium text-slate-500 w-24">Email</span>
-                  <span className="text-sm text-slate-900">{user?.emailAddresses[0]?.emailAddress}</span>
+                  <span className="text-[13px] font-medium text-zinc-500 w-32">Email</span>
+                  <span className="text-[14px] text-zinc-900">{user?.emailAddresses[0]?.emailAddress}</span>
                 </div>
                 <div className="flex items-start">
-                  <span className="text-sm font-medium text-slate-500 w-24">User ID</span>
-                  <span className="text-sm text-slate-600 font-mono">{user?.id}</span>
+                  <span className="text-[13px] font-medium text-zinc-500 w-32">User ID</span>
+                  <span className="text-[13px] text-zinc-600 font-mono">{user?.id}</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-2">Get Started</h2>
-              <p className="text-sm text-slate-600 mb-4">
-                Start analyzing GitHub repositories with AI assistance
+            {/* Quick Actions */}
+            <div className="border border-zinc-200 rounded-lg p-8">
+              <h2 className="text-[16px] font-medium text-zinc-900 mb-3">
+                Start Learning
+              </h2>
+              <p className="text-[14px] leading-relaxed text-zinc-600 mb-6">
+                Analyze any GitHub repository to begin your personalized learning journey with AI-powered explanations.
               </p>
-              <button className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors">
-                Analyze a repository
+              <button className="px-4 py-2 text-[13px] font-medium text-white bg-zinc-900 rounded-md hover:bg-zinc-800 transition-all duration-200">
+                Analyze repository
               </button>
+            </div>
+
+            {/* Recent Activity - Placeholder */}
+            <div className="border border-zinc-200 rounded-lg p-8">
+              <h2 className="text-[16px] font-medium text-zinc-900 mb-3">
+                Recent Activity
+              </h2>
+              <p className="text-[14px] text-zinc-500">
+                No recent activity yet. Start analyzing repositories to see your learning progress here.
+              </p>
             </div>
           </div>
         </div>

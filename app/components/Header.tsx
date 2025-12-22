@@ -3,26 +3,26 @@ import Link from 'next/link'
 
 export default function Header() {
   return (
-    <header className="border-b border-slate-200 bg-white">
-      <nav className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+    <header className="border-b border-zinc-200 bg-white">
+      <nav className="max-w-5xl mx-auto px-8 h-14 flex items-center justify-between">
         <Link 
           href="/" 
-          className="text-lg font-semibold text-slate-900 hover:text-slate-700 transition-colors"
+          className="text-[15px] font-medium text-zinc-900 hover:text-zinc-600 transition-colors duration-200"
         >
-          AI Tutor
+          GitGuide
         </Link>
         
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-8">
           <SignedOut>
             <Link 
               href="/sign-in" 
-              className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+              className="text-[13px] font-medium text-zinc-500 hover:text-zinc-900 transition-colors duration-200"
             >
               Sign in
             </Link>
             <Link 
               href="/sign-up"
-              className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors"
+              className="px-3.5 py-1.5 text-[13px] font-medium text-white bg-zinc-900 rounded-md hover:bg-zinc-800 transition-all duration-200"
             >
               Get started
             </Link>
@@ -31,7 +31,7 @@ export default function Header() {
           <SignedIn>
             <Link 
               href="/dashboard" 
-              className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+              className="text-[13px] font-medium text-zinc-500 hover:text-zinc-900 transition-colors duration-200"
             >
               Dashboard
             </Link>
