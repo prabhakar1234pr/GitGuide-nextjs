@@ -1,6 +1,105 @@
 'use client'
 
-export default function ChatbotWidget() {
+import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '@clerk/nextjs'
+import { sendChatMessage, type ChatMessage } from '../../lib/api-chatbot'
+
+interface ChatbotWidgetProps {
+  projectId: string
+}
+
+export default function ChatbotWidget({ projectId }: ChatbotWidgetProps) {
+  const { getToken } = useAuth()
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [message, setMessage] = useState('')
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const handleSend = async () => {
+    if (!message.trim() || isLoading) return
+
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: message.trim(),
+    }
+
+    // Add user message immediately
+    const updatedMessages = [...messages, userMessage]
+    setMessages(updatedMessages)
+    setMessage('')
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const token = await getToken()
+      if (!token) {
+        throw new Error('Authentication required. Please sign in.')
+      }
+
+      // Get conversation history (all previous messages, excluding the one we just added)
+      // The API will add the current message, so we send all previous messages
+      const conversationHistory = messages
+
+      // Call API
+      const response = await sendChatMessage(
+        projectId,
+        userMessage.content,
+        conversationHistory,
+        token
+      )
+
+      // Add AI response
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: response.response,
+      }
+      setMessages((prev) => [...prev, assistantMessage])
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send message'
+      setError(errorMessage)
+      // Remove the user message if API call failed
+      setMessages((prev) => prev.slice(0, -1))
+      console.error('Chat error:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+
+  if (isCollapsed) {
+    return (
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="bg-[#3f4449] hover:bg-[#4f5459] rounded-full shadow-2xl border border-white/10 p-4 transition-all duration-200 flex items-center gap-3"
+        >
+          <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </div>
+          <div className="text-left">
+            <p className="text-white text-sm font-medium">AI Tutor</p>
+            <p className="text-zinc-400 text-xs">Click to chat</p>
+          </div>
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="fixed bottom-6 right-6 z-50">
       <div className="bg-[#3f4449] rounded-lg shadow-2xl border border-white/10 w-80 h-96 flex flex-col">
@@ -17,27 +116,70 @@ export default function ChatbotWidget() {
               <p className="text-zinc-400 text-xs">Online</p>
             </div>
           </div>
-          <button className="text-zinc-400 hover:text-white transition-colors">
+          <button 
+            onClick={() => setIsCollapsed(true)}
+            className="text-zinc-400 hover:text-white transition-colors"
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
         </div>
         
         {/* Chat Messages Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div className="flex items-start gap-2">
-            <div className="w-6 h-6 bg-white/10 rounded-full flex-shrink-0"></div>
-            <div className="bg-[#2f3338] rounded-lg px-3 py-2 max-w-[80%]">
-              <p className="text-white text-sm">Hello! I'm your AI tutor. How can I help you with this project?</p>
+          {messages.length === 0 && !isLoading && (
+            <div className="text-center text-zinc-400 text-sm py-8">
+              <p>Start a conversation with your AI tutor</p>
+              <p className="text-xs mt-2">Ask questions about your codebase</p>
             </div>
-          </div>
-          <div className="flex items-start gap-2 justify-end">
-            <div className="bg-white/10 rounded-lg px-3 py-2 max-w-[80%]">
-              <p className="text-white text-sm">This is a placeholder message</p>
+          )}
+          
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`flex items-start gap-2 ${
+                msg.role === 'user' ? 'justify-end' : 'justify-start'
+              }`}
+            >
+              {msg.role === 'assistant' && (
+                <div className="w-6 h-6 bg-white/10 rounded-full flex-shrink-0"></div>
+              )}
+              <div
+                className={`rounded-lg px-3 py-2 max-w-[80%] ${
+                  msg.role === 'user'
+                    ? 'bg-white/10 text-white'
+                    : 'bg-[#2f3338] text-white'
+                }`}
+              >
+                <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+              </div>
+              {msg.role === 'user' && (
+                <div className="w-6 h-6 bg-white/10 rounded-full flex-shrink-0"></div>
+              )}
             </div>
-            <div className="w-6 h-6 bg-white/10 rounded-full flex-shrink-0"></div>
-          </div>
+          ))}
+          
+          {isLoading && (
+            <div className="flex items-start gap-2">
+              <div className="w-6 h-6 bg-white/10 rounded-full flex-shrink-0"></div>
+              <div className="bg-[#2f3338] rounded-lg px-3 py-2">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {error && (
+            <div className="bg-red-500/20 border border-red-500/50 rounded-lg px-3 py-2">
+              <p className="text-red-300 text-sm">{error}</p>
+            </div>
+          )}
+          
+          <div ref={messagesEndRef} />
         </div>
         
         {/* Chat Input */}
@@ -46,12 +188,16 @@ export default function ChatbotWidget() {
             <input
               type="text"
               placeholder="Type your message..."
-              className="flex-1 bg-[#2f3338] border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-zinc-500 focus:outline-none focus:border-white/20"
-              disabled
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isLoading}
+              className="flex-1 bg-[#2f3338] border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-zinc-500 focus:outline-none focus:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <button 
-              className="bg-white/10 hover:bg-white/20 text-white rounded-lg p-2 transition-colors disabled:opacity-50"
-              disabled
+              onClick={handleSend}
+              disabled={!message.trim() || isLoading}
+              className="bg-white/10 hover:bg-white/20 text-white rounded-lg p-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

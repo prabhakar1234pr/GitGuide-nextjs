@@ -122,7 +122,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         </div>
       </div>
       
-      <ChatbotWidget />
+      <ChatbotWidget projectId={projectId} />
     </>
   )
 }
