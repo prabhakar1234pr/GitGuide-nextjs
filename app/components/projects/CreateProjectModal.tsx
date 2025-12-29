@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
 import { createProjectClient, type CreateProjectData } from '../../lib/api-client'
 
@@ -14,7 +13,6 @@ interface CreateProjectModalProps {
 type ExperienceLevel = 'beginner' | 'intermediate' | 'expert'
 
 export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }: CreateProjectModalProps) {
-  const router = useRouter()
   const { getToken } = useAuth()
   const [githubUrl, setGithubUrl] = useState('')
   const [experience, setExperience] = useState<ExperienceLevel>('intermediate')
@@ -216,7 +214,7 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
               
               {/* Helper text */}
               <p className="text-sm text-zinc-400 text-center">
-                We'll create a {duration}-day learning plan
+                We&apos;ll create a {duration}-day learning plan
               </p>
             </div>
           </div>
@@ -238,7 +236,7 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
                 </>
               ) : (
                 <>
-                  <span>Let's start building</span>
+                  <span>Let&apos;s start building</span>
                   <span className="group-hover:translate-x-1 transition-transform">⚡</span>
                 </>
               )}

@@ -439,7 +439,7 @@ export default function DashboardContent({ projects: initialProjects }: Dashboar
           <div className="bg-[#3f4449] rounded-lg p-6 max-w-md w-full mx-4 border border-zinc-600">
             <h3 className="text-lg font-semibold text-white mb-2">Delete Project</h3>
             <p className="text-zinc-300 mb-6">
-              Are you sure you want to delete "{projects.find(p => p.project_id === deleteConfirmId)?.project_name}"? 
+              Are you sure you want to delete &quot;{projects.find(p => p.project_id === deleteConfirmId)?.project_name}&quot;?
               This will permanently delete the project, all chunks, and embeddings. This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
