@@ -18,6 +18,7 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
     progress, 
     current, 
     loading: progressLoading,
+    refetch: refetchProgress,
     startConcept: startConceptProgress,
     completeConcept: completeConceptProgress,
     startDay: startDayProgress,
@@ -30,6 +31,8 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
   const { dayDetails, loading: dayDetailsLoading } = useDayDetails(projectId, selectedDayId)
   const { conceptDetails, loading: conceptDetailsLoading } = useConceptDetails(projectId, selectedConceptId)
   
+  // Progress refresh is now handled only when last task/subconcept of last concept is completed
+
   // Set initial day when days load
   useEffect(() => {
     if (days.length > 0 && !selectedDayId) {
@@ -89,6 +92,8 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
   // Build progress maps
   const dayProgressMap = progress?.day_progress || {}
   const conceptProgressMap = progress?.concept_progress || {}
+  const subconceptProgressMap = progress?.subconcept_progress || {}
+  const taskProgressMap = progress?.task_progress || {}
   
   // Get roadmap context for chatbot
   const roadmapContext = {
@@ -148,11 +153,15 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
               concepts={dayDetails.concepts}
               currentConceptId={selectedConceptId}
               conceptProgressMap={conceptProgressMap}
+              projectId={projectId}
+              subconceptProgress={subconceptProgressMap}
+              taskProgress={taskProgressMap}
               onConceptClick={handleConceptClick}
               onStartConcept={handleStartConcept}
               onCompleteConcept={handleCompleteConcept}
               conceptDetails={conceptDetails}
               loadingDetails={conceptDetailsLoading}
+              onProgressChange={refetchProgress}
             />
           )}
         </div>

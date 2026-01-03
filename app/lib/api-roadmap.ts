@@ -263,3 +263,71 @@ export async function completeDay(projectId: string, dayId: string, token: strin
   return response.json()
 }
 
+export interface TaskDetails {
+  task: Task
+  concept: Concept
+  day: RoadmapDay
+  project: {
+    project_id: string
+    project_name: string
+    github_url: string
+    skill_level: string
+    target_days: number
+    status: string
+    created_at: string
+  }
+}
+
+export async function getTaskDetails(taskId: string, token: string | null): Promise<{ success: boolean } & TaskDetails> {
+  if (!token) {
+    throw new Error('Authentication required')
+  }
+  
+  const headers = getAuthHeadersClient(token)
+  const response = await fetch(`${API_BASE_URL}/api/roadmap/task/${taskId}`, {
+    headers,
+  })
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch task details: ${response.statusText}`)
+  }
+  
+  return response.json()
+}
+
+export async function completeSubconcept(projectId: string, subconceptId: string, token: string | null): Promise<{ success: boolean }> {
+  if (!token) {
+    throw new Error('Authentication required')
+  }
+  
+  const headers = getAuthHeadersClient(token)
+  const response = await fetch(`${API_BASE_URL}/api/progress/${projectId}/subconcept/${subconceptId}/complete`, {
+    method: 'POST',
+    headers,
+  })
+  
+  if (!response.ok) {
+    throw new Error(`Failed to complete subconcept: ${response.statusText}`)
+  }
+  
+  return response.json()
+}
+
+export async function completeTask(projectId: string, taskId: string, token: string | null): Promise<{ success: boolean }> {
+  if (!token) {
+    throw new Error('Authentication required')
+  }
+  
+  const headers = getAuthHeadersClient(token)
+  const response = await fetch(`${API_BASE_URL}/api/progress/${projectId}/task/${taskId}/complete`, {
+    method: 'POST',
+    headers,
+  })
+  
+  if (!response.ok) {
+    throw new Error(`Failed to complete task: ${response.statusText}`)
+  }
+  
+  return response.json()
+}
+

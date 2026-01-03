@@ -9,22 +9,30 @@ interface KanbanBoardProps {
   concepts: Concept[]
   currentConceptId: string | null
   conceptProgressMap: Record<string, { progress_status: string }>
+  projectId: string
+  subconceptProgress: Record<string, { progress_status: string }>
+  taskProgress: Record<string, { progress_status: string }>
   onConceptClick: (conceptId: string) => void
   onStartConcept: (conceptId: string) => Promise<void>
   onCompleteConcept: (conceptId: string) => Promise<void>
   conceptDetails: ConceptDetails | null
   loadingDetails: boolean
+  onProgressChange: () => Promise<void>
 }
 
 export default function KanbanBoard({
   concepts,
   currentConceptId,
   conceptProgressMap,
+  projectId,
+  subconceptProgress,
+  taskProgress,
   onConceptClick,
   onStartConcept,
   onCompleteConcept,
   conceptDetails,
   loadingDetails,
+  onProgressChange,
 }: KanbanBoardProps) {
   const getConceptStatus = (concept: Concept): string => {
     const progress = conceptProgressMap[concept.concept_id]
@@ -72,8 +80,13 @@ export default function KanbanBoard({
                 <ConceptDetailPanel
                   conceptDetails={conceptDetails}
                   loading={loadingDetails}
+                  projectId={projectId}
+                  subconceptProgress={subconceptProgress}
+                  taskProgress={taskProgress}
                   onStart={() => onStartConcept(concept.concept_id)}
                   onComplete={() => onCompleteConcept(concept.concept_id)}
+                  onProgressChange={onProgressChange}
+                  isLastConcept={concepts[concepts.length - 1]?.concept_id === concept.concept_id}
                 />
               ) : (
                 <ConceptCard

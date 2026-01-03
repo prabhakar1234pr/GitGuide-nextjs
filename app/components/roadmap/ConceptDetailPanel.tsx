@@ -8,11 +8,26 @@ import TasksSection from './TasksSection'
 interface ConceptDetailPanelProps {
   conceptDetails: ConceptDetails | null
   loading: boolean
+  projectId: string
+  subconceptProgress: Record<string, { progress_status: string }>
+  taskProgress: Record<string, { progress_status: string }>
   onStart: () => Promise<void>
   onComplete: () => Promise<void>
+  onProgressChange: () => Promise<void>
+  isLastConcept: boolean
 }
 
-export default function ConceptDetailPanel({ conceptDetails, loading, onStart, onComplete }: ConceptDetailPanelProps) {
+export default function ConceptDetailPanel({ 
+  conceptDetails, 
+  loading, 
+  projectId,
+  subconceptProgress,
+  taskProgress,
+  onStart, 
+  onComplete,
+  onProgressChange,
+  isLastConcept
+}: ConceptDetailPanelProps) {
   const [isStarting, setIsStarting] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
 
@@ -91,9 +106,19 @@ export default function ConceptDetailPanel({ conceptDetails, loading, onStart, o
         <div className="mb-3 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-800">
           <h4 className="text-xs font-semibold text-white mb-2">Learning Content</h4>
           <div className="space-y-1.5">
-            {subconcepts.map((subconcept) => (
-              <SubConceptItem key={subconcept.subconcept_id} subconcept={subconcept} />
-            ))}
+            {subconcepts.map((subconcept, index) => {
+              // Check if this is the last subconcept of the last concept (and there are no tasks)
+              const isLastSubconcept = isLastConcept && index === subconcepts.length - 1 && tasks.length === 0
+              return (
+                <SubConceptItem 
+                  key={subconcept.subconcept_id} 
+                  subconcept={subconcept}
+                  projectId={projectId}
+                  isCompleted={subconceptProgress[subconcept.subconcept_id]?.progress_status === 'done'}
+                  onProgressChange={isLastSubconcept ? onProgressChange : async () => {}}
+                />
+              )
+            })}
           </div>
         </div>
       )}
@@ -101,7 +126,10 @@ export default function ConceptDetailPanel({ conceptDetails, loading, onStart, o
       {/* Tasks */}
       {tasks.length > 0 && (
         <div className="max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-800">
-          <TasksSection tasks={tasks} />
+          <TasksSection 
+            tasks={tasks} 
+            taskProgress={taskProgress}
+          />
         </div>
       )}
     </div>
