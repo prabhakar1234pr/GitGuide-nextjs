@@ -44,6 +44,7 @@ export async function getProject(projectId: string) {
     const response = await fetch(`${API_URL}/api/projects/${projectId}`, {
       method: 'GET',
       headers,
+      cache: 'no-store',
     })
     
     if (!response.ok) {

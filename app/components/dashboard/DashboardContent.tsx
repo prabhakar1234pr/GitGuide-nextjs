@@ -68,9 +68,10 @@ export default function DashboardContent({ projects: initialProjects }: Dashboar
     })
   }
 
-  // Filter projects: only show "ready" projects, track "processing" separately
+  // Filter projects by status
   const readyProjects = projects.filter(p => p.status === 'ready')
   const processingProjects = projects.filter(p => p.status === 'processing' || p.status === 'created')
+  const failedProjects = projects.filter(p => p.status === 'failed')
   
   // Sort ready projects based on selected option
   const sortedProjects = [...readyProjects].sort((a, b) => {
@@ -267,6 +268,49 @@ export default function DashboardContent({ projects: initialProjects }: Dashboar
                     </p>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Failed Projects Section */}
+            {failedProjects.length > 0 && (
+              <div className="mb-6 space-y-3">
+                {failedProjects.map((project) => (
+                  <div key={project.project_id} className="bg-red-950/30 border border-red-500/30 rounded-lg p-4">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
+                          <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-white font-medium">{project.project_name}</h4>
+                          <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                            Failed
+                          </span>
+                        </div>
+                        <p className="text-zinc-400 text-sm mb-2 truncate">
+                          {project.github_url}
+                        </p>
+                        {project.error_message && (
+                          <p className="text-red-400/80 text-xs bg-red-500/10 rounded px-2 py-1 mb-3">
+                            Error: {project.error_message}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleDeleteClick({ stopPropagation: () => {} } as React.MouseEvent, project.project_id)}
+                            className="px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg transition-colors"
+                          >
+                            Delete Project
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 

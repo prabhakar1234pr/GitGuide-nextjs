@@ -13,6 +13,7 @@ export interface RoadmapDay {
   day_number: number
   theme: string
   description: string | null
+  estimated_minutes: number
   generated_status: 'pending' | 'generating' | 'generated' | 'failed'
   created_at: string
 }
@@ -23,16 +24,8 @@ export interface Concept {
   order_index: number
   title: string
   description: string | null
-  generated_status: 'pending' | 'generating' | 'generated' | 'failed'
-  created_at: string
-}
-
-export interface SubConcept {
-  subconcept_id: string
-  concept_id: string
-  order_index: number
-  title: string
-  content: string
+  content: string | null
+  estimated_minutes: number
   generated_status: 'pending' | 'generating' | 'generated' | 'failed'
   created_at: string
 }
@@ -44,6 +37,11 @@ export interface Task {
   title: string
   description: string
   task_type: 'coding' | 'reading' | 'research' | 'quiz' | 'github_profile' | 'create_repo' | 'verify_commit'
+  estimated_minutes: number
+  difficulty: 'easy' | 'medium' | 'hard'
+  hints: string[]
+  solution: string | null
+  verification_data: Record<string, unknown> | null
   generated_status: 'pending' | 'generating' | 'generated' | 'failed'
   created_at: string
 }
@@ -55,7 +53,6 @@ export interface DayDetails {
 
 export interface ConceptDetails {
   concept: Concept
-  subconcepts: SubConcept[]
   tasks: Task[]
 }
 
@@ -63,6 +60,8 @@ export interface GenerationStatus {
   total_days: number
   target_days: number
   generated_days: number
+  generation_progress: number
+  error_message: string | null
   status_counts: {
     pending: number
     generating: number
@@ -73,11 +72,41 @@ export interface GenerationStatus {
   is_generating: boolean
 }
 
+export interface DayProgress {
+  id: string
+  user_id: string
+  day_id: string
+  progress_status: 'locked' | 'todo' | 'doing' | 'done'
+  started_at: string | null
+  completed_at: string | null
+  updated_at: string
+}
+
+export interface ConceptProgress {
+  id: string
+  user_id: string
+  concept_id: string
+  progress_status: 'locked' | 'todo' | 'doing' | 'done'
+  content_read: boolean
+  started_at: string | null
+  completed_at: string | null
+  updated_at: string
+}
+
+export interface TaskProgress {
+  id: string
+  user_id: string
+  task_id: string
+  progress_status: 'locked' | 'todo' | 'doing' | 'done'
+  started_at: string | null
+  completed_at: string | null
+  updated_at: string
+}
+
 export interface UserProgress {
-  day_progress: Record<string, { id: string; user_id: string; day_id: string; progress_status: string; updated_at: string }>
-  concept_progress: Record<string, { id: string; user_id: string; concept_id: string; progress_status: string; updated_at: string }>
-  subconcept_progress: Record<string, { id: string; user_id: string; subconcept_id: string; progress_status: string; updated_at: string }>
-  task_progress: Record<string, { id: string; user_id: string; task_id: string; progress_status: string; updated_at: string }>
+  day_progress: Record<string, DayProgress>
+  concept_progress: Record<string, ConceptProgress>
+  task_progress: Record<string, TaskProgress>
 }
 
 export interface CurrentProgress {
@@ -227,6 +256,24 @@ export async function completeConcept(projectId: string, conceptId: string, toke
   return response.json()
 }
 
+export async function markContentRead(projectId: string, conceptId: string, token: string | null): Promise<{ success: boolean }> {
+  if (!token) {
+    throw new Error('Authentication required')
+  }
+  
+  const headers = getAuthHeadersClient(token)
+  const response = await fetch(`${API_BASE_URL}/api/progress/${projectId}/concept/${conceptId}/content-read`, {
+    method: 'POST',
+    headers,
+  })
+  
+  if (!response.ok) {
+    throw new Error(`Failed to mark content as read: ${response.statusText}`)
+  }
+  
+  return response.json()
+}
+
 export async function startDay(projectId: string, dayId: string, token: string | null): Promise<{ success: boolean }> {
   if (!token) {
     throw new Error('Authentication required')
@@ -295,19 +342,19 @@ export async function getTaskDetails(taskId: string, token: string | null): Prom
   return response.json()
 }
 
-export async function completeSubconcept(projectId: string, subconceptId: string, token: string | null): Promise<{ success: boolean }> {
+export async function startTask(projectId: string, taskId: string, token: string | null): Promise<{ success: boolean }> {
   if (!token) {
     throw new Error('Authentication required')
   }
   
   const headers = getAuthHeadersClient(token)
-  const response = await fetch(`${API_BASE_URL}/api/progress/${projectId}/subconcept/${subconceptId}/complete`, {
+  const response = await fetch(`${API_BASE_URL}/api/progress/${projectId}/task/${taskId}/start`, {
     method: 'POST',
     headers,
   })
   
   if (!response.ok) {
-    throw new Error(`Failed to complete subconcept: ${response.statusText}`)
+    throw new Error(`Failed to start task: ${response.statusText}`)
   }
   
   return response.json()
@@ -330,4 +377,3 @@ export async function completeTask(projectId: string, taskId: string, token: str
   
   return response.json()
 }
-

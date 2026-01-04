@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { type Concept, type ConceptDetails } from '../../lib/api-roadmap'
 import ConceptCard from './ConceptCard'
 import ConceptDetailPanel from './ConceptDetailPanel'
@@ -8,9 +7,8 @@ import ConceptDetailPanel from './ConceptDetailPanel'
 interface KanbanBoardProps {
   concepts: Concept[]
   currentConceptId: string | null
-  conceptProgressMap: Record<string, { progress_status: string }>
+  conceptProgressMap: Record<string, { progress_status: string; content_read?: boolean }>
   projectId: string
-  subconceptProgress: Record<string, { progress_status: string }>
   taskProgress: Record<string, { progress_status: string }>
   onConceptClick: (conceptId: string) => void
   onStartConcept: (conceptId: string) => Promise<void>
@@ -25,7 +23,6 @@ export default function KanbanBoard({
   currentConceptId,
   conceptProgressMap,
   projectId,
-  subconceptProgress,
   taskProgress,
   onConceptClick,
   onStartConcept,
@@ -81,7 +78,7 @@ export default function KanbanBoard({
                   conceptDetails={conceptDetails}
                   loading={loadingDetails}
                   projectId={projectId}
-                  subconceptProgress={subconceptProgress}
+                  conceptProgress={conceptProgressMap}
                   taskProgress={taskProgress}
                   onStart={() => onStartConcept(concept.concept_id)}
                   onComplete={() => onCompleteConcept(concept.concept_id)}
@@ -129,4 +126,3 @@ export default function KanbanBoard({
     </div>
   )
 }
-

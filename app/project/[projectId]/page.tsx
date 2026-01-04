@@ -5,6 +5,9 @@ import Header from '../../components/Header'
 import RoadmapPage from '../../components/roadmap/RoadmapPage'
 import { getProject, type Project } from '../../lib/api'
 
+// Force dynamic rendering to prevent caching issues
+export const dynamic = 'force-dynamic'
+
 interface ProjectPageProps {
   params: Promise<{
     projectId: string

@@ -17,8 +17,10 @@ export interface Project {
   github_url: string
   skill_level: string
   target_days: number
-  status: string
+  status: 'created' | 'processing' | 'ready' | 'failed'
   created_at: string
   updated_at?: string
+  generation_progress?: number
+  error_message?: string | null
 }
 

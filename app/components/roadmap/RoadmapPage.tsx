@@ -6,7 +6,6 @@ import { useProgress } from '../../hooks/useProgress'
 import DayCardsStrip from './DayCardsStrip'
 import KanbanBoard from './KanbanBoard'
 import ChatbotWidget from '../chatbot/ChatbotWidget'
-import { type RoadmapDay, type Concept } from '../../lib/api-roadmap'
 
 interface RoadmapPageProps {
   projectId: string
@@ -21,8 +20,6 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
     refetch: refetchProgress,
     startConcept: startConceptProgress,
     completeConcept: completeConceptProgress,
-    startDay: startDayProgress,
-    completeDay: completeDayProgress,
   } = useProgress(projectId)
   
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null)
@@ -30,18 +27,14 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
   
   const { dayDetails, loading: dayDetailsLoading } = useDayDetails(projectId, selectedDayId)
   const { conceptDetails, loading: conceptDetailsLoading } = useConceptDetails(projectId, selectedConceptId)
-  
-  // Progress refresh is now handled only when last task/subconcept of last concept is completed
 
   // Set initial day when days load
   useEffect(() => {
     if (days.length > 0 && !selectedDayId) {
-      // Find first unlocked day or current day
       const currentDay = current?.current_day
       if (currentDay) {
         setSelectedDayId(currentDay.day_id)
       } else {
-        // Find first generated day
         const firstGenerated = days.find(d => d.generated_status === 'generated')
         if (firstGenerated) {
           setSelectedDayId(firstGenerated.day_id)
@@ -59,7 +52,6 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
       if (currentConcept) {
         setSelectedConceptId(currentConcept.concept_id)
       } else {
-        // Find first concept
         setSelectedConceptId(dayDetails.concepts[0].concept_id)
       }
     }
@@ -67,7 +59,6 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
   
   const handleConceptClick = (conceptId: string) => {
     setSelectedConceptId(conceptId)
-    // Move concept to doing if it's in todo
     const conceptProgress = progress?.concept_progress[conceptId]
     if (!conceptProgress || conceptProgress.progress_status === 'todo') {
       startConceptProgress(conceptId).catch(console.error)
@@ -80,7 +71,6 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
   
   const handleCompleteConcept = async (conceptId: string) => {
     await completeConceptProgress(conceptId)
-    // Move to next concept
     if (dayDetails) {
       const currentIndex = dayDetails.concepts.findIndex(c => c.concept_id === conceptId)
       if (currentIndex < dayDetails.concepts.length - 1) {
@@ -92,7 +82,6 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
   // Build progress maps
   const dayProgressMap = progress?.day_progress || {}
   const conceptProgressMap = progress?.concept_progress || {}
-  const subconceptProgressMap = progress?.subconcept_progress || {}
   const taskProgressMap = progress?.task_progress || {}
   
   // Get roadmap context for chatbot
@@ -100,7 +89,7 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
     day_number: dayDetails?.day.day_number ?? null,
     day_theme: dayDetails?.day.theme ?? null,
     concept_title: conceptDetails?.concept.title ?? null,
-    subconcept_title: null, // TODO: Track current subconcept
+    subconcept_title: null,
   }
   
   if (roadmapLoading || progressLoading) {
@@ -154,7 +143,6 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
               currentConceptId={selectedConceptId}
               conceptProgressMap={conceptProgressMap}
               projectId={projectId}
-              subconceptProgress={subconceptProgressMap}
               taskProgress={taskProgressMap}
               onConceptClick={handleConceptClick}
               onStartConcept={handleStartConcept}
@@ -175,4 +163,3 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
     </>
   )
 }
-

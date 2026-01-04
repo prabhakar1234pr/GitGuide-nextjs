@@ -18,7 +18,7 @@ interface ChatbotWidgetProps {
 
 export default function ChatbotWidget({ projectId, roadmapContext }: ChatbotWidgetProps) {
   const { getToken } = useAuth()
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(true)
   const [message, setMessage] = useState('')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
