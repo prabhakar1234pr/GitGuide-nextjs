@@ -123,15 +123,23 @@ export default function FileExplorer({
 
   const handleCreate = async () => {
     if (!newFileName.trim()) return
-    const token = await getToken()
-    if (!token) return
-    const path = `/workspace/${newFileName.trim()}`
-    await createFile(workspaceId, path, createType === 'folder', token)
-    setIsCreating(false)
-    setNewFileName('')
-    loadRootFiles()
-    setChildrenMap(new Map())
-    onRefresh?.()
+    setError(null)
+    try {
+      const token = await getToken()
+      if (!token) return
+      const path = `/workspace/${newFileName.trim()}`
+      await createFile(workspaceId, path, createType === 'folder', token)
+      setIsCreating(false)
+      setNewFileName('')
+      loadRootFiles()
+      setChildrenMap(new Map())
+      onRefresh?.()
+    } catch (err) {
+      console.error('Create error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to create item')
+      // Auto-clear error after 3 seconds
+      setTimeout(() => setError(null), 3000)
+    }
   }
 
   const renderNode = (file: FileItem, level: number) => {

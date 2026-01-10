@@ -19,7 +19,7 @@ export default function Header() {
     <header className="border-b border-zinc-800 bg-[#1e1e1e] sticky top-0 z-50">
       <nav className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
         <Link 
-          href={userId ? "/dashboard" : "/"} 
+          href={mounted && userId ? "/dashboard" : "/"} 
           className="flex items-center gap-2.5 hover:opacity-90 transition-opacity"
         >
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -53,7 +53,6 @@ export default function Header() {
                 </Button>
                 <div className="pl-3 border-l border-zinc-800 ml-3 flex items-center relative">
                   <UserButton 
-                    afterSignOutUrl="/"
                     appearance={{
                       elements: {
                         rootBox: "flex items-center justify-center",

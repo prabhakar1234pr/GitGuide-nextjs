@@ -126,6 +126,9 @@ export default function DashboardContent({ projects: initialProjects }: Dashboar
     setIsDeleting(true)
     try {
       const token = await getToken()
+      if (!token) {
+        throw new Error('Unauthorized: No token found')
+      }
       await deleteProject(deleteConfirmId, token)
       setProjects(projects.filter(p => p.project_id !== deleteConfirmId))
       setDeleteConfirmId(null)

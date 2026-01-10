@@ -117,7 +117,7 @@ export default function ConceptDetailPanel({
 
   return (
     <div className="w-full bg-[#18181b] rounded-xl border border-orange-500/30 shadow-2xl shadow-orange-500/5 overflow-hidden">
-      <ScrollArea orientation="horizontal" className="w-full">
+      <ScrollArea className="w-full">
         <div className="p-5 min-w-[380px]">
           {/* Header */}
           <div className="mb-6">

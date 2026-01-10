@@ -93,6 +93,7 @@ export default function KanbanBoard({
   onProgressChange,
 }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, string>>({})
   const activeConcept = concepts.find(c => c.concept_id === activeId)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -116,6 +117,10 @@ export default function KanbanBoard({
   }
 
   const getConceptStatus = (concept: Concept): string => {
+    // Check optimistic updates first
+    if (optimisticUpdates[concept.concept_id]) {
+      return optimisticUpdates[concept.concept_id]
+    }
     const progress = conceptProgressMap[concept.concept_id]
     return progress?.progress_status || 'todo'
   }
@@ -131,28 +136,57 @@ export default function KanbanBoard({
     if (!over) return
 
     const conceptId = active.id as string
-    const activeConcept = concepts.find(c => c.concept_id === conceptId)!
+    const activeConcept = concepts.find(c => c.concept_id === conceptId)
+    if (!activeConcept) return
+
     const currentStatus = getConceptStatus(activeConcept)
     const targetStatus = over.id as string
 
     if (currentStatus === targetStatus) return
 
-    // Logic: Todo -> Doing
-    if (currentStatus === 'todo' && targetStatus === 'doing') {
-      // Check if previous concept is done
-      const currentIndex = concepts.findIndex(c => c.concept_id === conceptId)
-      if (currentIndex > 0) {
-        const prevConcept = concepts[currentIndex - 1]
-        if (getConceptStatus(prevConcept) !== 'done') {
-          // You can't start this yet!
-          return
+    // Optimistic Update
+    setOptimisticUpdates(prev => ({ ...prev, [conceptId]: targetStatus }))
+
+    try {
+      // Logic: Todo -> Doing
+      if (currentStatus === 'todo' && targetStatus === 'doing') {
+        // Check if previous concept is done
+        const currentIndex = concepts.findIndex(c => c.concept_id === conceptId)
+        if (currentIndex > 0) {
+          const prevConcept = concepts[currentIndex - 1]
+          if (getConceptStatus(prevConcept) !== 'done') {
+            // You can't start this yet!
+            setOptimisticUpdates(prev => {
+              const next = { ...prev }
+              delete next[conceptId]
+              return next
+            })
+            return
+          }
         }
+        await onStartConcept(conceptId)
+      } 
+      // Logic: Doing -> Done
+      else if (currentStatus === 'doing' && targetStatus === 'done') {
+        await onCompleteConcept(conceptId)
       }
-      await onStartConcept(conceptId)
-    } 
-    // Logic: Doing -> Done
-    else if (currentStatus === 'doing' && targetStatus === 'done') {
-      await onCompleteConcept(conceptId)
+    } catch (err) {
+      console.error('Drag and drop error:', err)
+      // Rollback optimistic update on error
+      setOptimisticUpdates(prev => {
+        const next = { ...prev }
+        delete next[conceptId]
+        return next
+      })
+    } finally {
+      // Clear optimistic update after a delay to allow the server state to propagate
+      setTimeout(() => {
+        setOptimisticUpdates(prev => {
+          const next = { ...prev }
+          delete next[conceptId]
+          return next
+        })
+      }, 1000)
     }
   }
 

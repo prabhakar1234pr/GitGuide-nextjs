@@ -20,7 +20,7 @@ export function useProgress(projectId: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchProgress = useCallback(async () => {
+  const fetchProgress = useCallback(async (isInitial = false) => {
     if (!projectId) return
 
     try {
@@ -30,7 +30,7 @@ export function useProgress(projectId: string) {
         return
       }
 
-      setLoading(true)
+      if (isInitial) setLoading(true)
       setError(null)
       const [progressData, currentData] = await Promise.all([
         getProgress(projectId, token),
@@ -41,13 +41,13 @@ export function useProgress(projectId: string) {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load progress')
     } finally {
-      setLoading(false)
+      if (isInitial) setLoading(false)
     }
   }, [projectId, getToken])
 
   // Initial fetch
   useEffect(() => {
-    fetchProgress()
+    fetchProgress(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
 

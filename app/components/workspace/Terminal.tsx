@@ -34,6 +34,7 @@ export default function TerminalComponent({
   const containerRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<import('@xterm/xterm').Terminal | null>(null)
   const fitAddonRef = useRef<import('@xterm/addon-fit').FitAddon | null>(null)
+  const listenersRef = useRef<import('@xterm/xterm').IDisposable[]>([])
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
   const initializedRef = useRef(false)
   const [token, setToken] = useState<string | null>(null)
@@ -179,16 +180,18 @@ export default function TerminalComponent({
       setTerminalReady(true)
       log('INIT', 'Terminal instance created and opened')
 
-      // Handle terminal input
-      term.onData((data) => {
-        log('INPUT', `Sending ${data.length} chars`)
-        sendInput(data)
-      })
+    // Handle terminal input
+    const dataListener = term.onData((data) => {
+      log('INPUT', `Sending ${data.length} chars`)
+      sendInput(data)
+    })
 
-      // Handle resize
-      term.onResize(({ cols, rows }) => {
-        resize(cols, rows)
-      })
+    // Handle resize
+    const resizeListener = term.onResize(({ cols, rows }) => {
+      resize(cols, rows)
+    })
+
+    listenersRef.current = [dataListener, resizeListener]
 
       // Show connecting message
       term.write('Connecting to container...\r\n')
@@ -297,6 +300,11 @@ export default function TerminalComponent({
     return () => {
       log('CLEANUP', 'Disposing terminal components...')
       disconnect()
+      
+      // Clean up listeners explicitly
+      listenersRef.current.forEach(l => l.dispose())
+      listenersRef.current = []
+
       terminalRef.current?.dispose()
       terminalRef.current = null
       fitAddonRef.current = null

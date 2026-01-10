@@ -132,6 +132,17 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
     }
   }, [workspaceId, activeFile, getToken, markFileSaved])
 
+  const handleRun = useCallback(async () => {
+    if (!workspaceId || !activeFile) return
+    setIsRunning(true)
+    setOutput('Running code...')
+    // For now, just a placeholder. Real implementation would send to terminal service.
+    setTimeout(() => {
+      setOutput(prev => prev + '\nExecution finished.')
+      setIsRunning(false)
+    }, 1000)
+  }, [workspaceId, activeFile])
+
   const handleVerifyTask = async () => {
     const hasCode = openFiles.some(f => f.content.trim().length > 10)
     if (!hasCode) {
@@ -188,13 +199,19 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
   return (
     <div className="h-full bg-[#09090b] flex flex-col overflow-hidden">
       <ResizablePanelGroup direction="horizontal">
-        {/* Sidebar: File Explorer */}
         <ResizablePanel defaultSize={18} minSize={12} maxSize={30} className="border-r border-zinc-800 bg-[#09090b]">
-          <FileExplorer
-            workspaceId={workspaceId!}
-            onFileSelect={handleFileSelect}
-            selectedFile={activeFilePath || undefined}
-          />
+          {workspaceId ? (
+            <FileExplorer
+              workspaceId={workspaceId}
+              onFileSelect={handleFileSelect}
+              selectedFile={activeFilePath || undefined}
+            />
+          ) : (
+            <div className="p-4 flex flex-col gap-2">
+              <Skeleton className="h-4 w-full bg-zinc-900" />
+              <Skeleton className="h-4 w-3/4 bg-zinc-900" />
+            </div>
+          )}
         </ResizablePanel>
 
         <ResizableHandle withHandle className="bg-zinc-800" />
@@ -254,13 +271,15 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
                     <Save className="w-3.5 h-3.5 mr-1.5" />
                     Save
                   </Button>
-                  <Button
-                    size="sm"
-                    className="h-7 px-3 text-[11px] font-medium bg-emerald-600/10 text-emerald-500 hover:bg-emerald-600/20 border border-emerald-600/20"
-                  >
-                    <Play className="w-3.5 h-3.5 mr-1.5" />
-                    Run
-                  </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleRun}
+                        disabled={isRunning || !activeFile}
+                        className="h-7 px-3 text-[11px] font-medium bg-emerald-600/10 text-emerald-500 hover:bg-emerald-600/20 border border-emerald-600/20"
+                      >
+                        {isRunning ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Play className="w-3.5 h-3.5 mr-1.5" />}
+                        Run
+                      </Button>
                 </div>
               </div>
 
@@ -292,9 +311,15 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
                 <TerminalIcon className="w-3.5 h-3.5 text-zinc-500" />
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Terminal</span>
               </div>
-              <div className="h-[calc(100%-32px)]">
-                <TerminalTabs workspaceId={workspaceId!} />
-              </div>
+                  <div className="h-[calc(100%-32px)]">
+                    {workspaceId ? (
+                      <TerminalTabs workspaceId={workspaceId} />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <Loader2 className="w-6 h-6 text-zinc-700 animate-spin" />
+                      </div>
+                    )}
+                  </div>
             </ResizablePanel>
           </ResizablePanelGroup>
         </ResizablePanel>
