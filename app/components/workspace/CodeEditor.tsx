@@ -159,23 +159,6 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
     }
   }, [workspaceId, openFiles, getToken, openFile, setActiveFilePath])
 
-  const handleSave = useCallback(async () => {
-    if (!workspaceId || !activeFile || !activeFile.isDirty) return
-    try {
-      setIsSaving(true)
-      const token = await getToken()
-      if (!token) return
-      await writeFile(workspaceId, activeFile.path, activeFile.content, token)
-      markFileSaved(activeFile.path)
-      setOutput('✓ File saved successfully')
-    } catch (err) {
-      console.error('Failed to save file:', err)
-      setOutput(`Error saving: ${err instanceof Error ? err.message : 'Unknown'}`)
-    } finally {
-      setIsSaving(false)
-    }
-  }, [workspaceId, activeFile, getToken, markFileSaved])
-
   const refreshGitData = useCallback(async () => {
     if (!workspaceId) return
     setGitLoading(true)
@@ -201,6 +184,25 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
       setGitLoading(false)
     }
   }, [workspaceId, getToken, externalDismissed])
+
+  const handleSave = useCallback(async () => {
+    if (!workspaceId || !activeFile || !activeFile.isDirty) return
+    try {
+      setIsSaving(true)
+      const token = await getToken()
+      if (!token) return
+      await writeFile(workspaceId, activeFile.path, activeFile.content, token)
+      markFileSaved(activeFile.path)
+      setOutput('✓ File saved successfully')
+      // Refresh git status after saving to detect changes immediately
+      await refreshGitData()
+    } catch (err) {
+      console.error('Failed to save file:', err)
+      setOutput(`Error saving: ${err instanceof Error ? err.message : 'Unknown'}`)
+    } finally {
+      setIsSaving(false)
+    }
+  }, [workspaceId, activeFile, getToken, markFileSaved, refreshGitData])
 
   useEffect(() => {
     if (!workspaceId) return
