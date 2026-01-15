@@ -9,6 +9,7 @@ import {
   getCommits, 
   pullFromRemote, 
   pushToRemote, 
+  commitChanges,
   checkExternalCommits, 
   resetExternalCommits,
   type GitCommitEntry,
@@ -31,6 +32,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { 
   Save, 
   CheckCircle2, 
@@ -84,6 +87,8 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
   const [externalCommits, setExternalCommits] = useState<GitCommitEntry[]>([])
   const [externalDismissed, setExternalDismissed] = useState(false)
   const [taskSessionId, setTaskSessionId] = useState<string | null>(null)
+  const [commitDialogOpen, setCommitDialogOpen] = useState(false)
+  const [commitMessage, setCommitMessage] = useState('')
 
   const activeFile = openFiles.find(f => f.path === activeFilePath)
 
@@ -225,19 +230,75 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
 
   const handlePush = useCallback(async () => {
     if (!workspaceId) return
+    
+    // Check if there are uncommitted changes
+    const hasUncommittedChanges = gitStatus && (
+      (gitStatus.modified && gitStatus.modified.length > 0) ||
+      (gitStatus.staged && gitStatus.staged.length > 0) ||
+      (gitStatus.untracked && gitStatus.untracked.length > 0)
+    )
+    
+    // If there are uncommitted changes, open commit dialog
+    if (hasUncommittedChanges) {
+      setCommitMessage('')
+      setCommitDialogOpen(true)
+      return
+    }
+    
+    // If there are commits ready to push, push directly
+    if (gitStatus && gitStatus.ahead && gitStatus.ahead > 0) {
+      setGitLoading(true)
+      try {
+        const token = await getToken()
+        if (!token) {
+          setOutput('Authentication required')
+          return
+        }
+        await pushToRemote(workspaceId, token, 'main')
+        setOutput('✓ Push completed')
+        await refreshGitData()
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+        setOutput(`Push failed: ${errorMsg}`)
+      } finally {
+        setGitLoading(false)
+      }
+      return
+    }
+    
+    // No changes and nothing to push
+    setOutput('Nothing to push')
+  }, [workspaceId, gitStatus, getToken, refreshGitData])
+
+  const handleCommitAndPush = useCallback(async () => {
+    if (!workspaceId) return
+    if (!commitMessage.trim()) {
+      setOutput('Commit message is required')
+      return
+    }
     setGitLoading(true)
     try {
       const token = await getToken()
-      if (!token) return
+      if (!token) {
+        setOutput('Authentication required')
+        return
+      }
+      await commitChanges(workspaceId, token, commitMessage.trim())
       await pushToRemote(workspaceId, token, 'main')
-      setOutput('✓ Push completed')
+      setOutput('✓ Commit and push completed')
+      setCommitDialogOpen(false)
       await refreshGitData()
     } catch (err) {
-      setOutput(`Push failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      if (errorMsg.toLowerCase().includes('nothing to commit')) {
+        setOutput('No changes to commit. Make sure you have saved your files.')
+      } else {
+        setOutput(`Push failed: ${errorMsg}`)
+      }
     } finally {
       setGitLoading(false)
     }
-  }, [workspaceId, getToken, refreshGitData])
+  }, [workspaceId, commitMessage, getToken, refreshGitData])
 
   const handleUncommittedAction = useCallback(async (action: 'commit' | 'stash' | 'discard' | 'cancel') => {
     setUncommittedDialogOpen(false)
@@ -339,6 +400,40 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
         onClose={() => setUncommittedDialogOpen(false)}
         onAction={handleUncommittedAction}
       />
+      <Dialog open={commitDialogOpen} onOpenChange={setCommitDialogOpen}>
+        <DialogContent className="bg-[#0c0c0e] border border-zinc-800">
+          <DialogHeader>
+            <DialogTitle className="text-white">Commit and Push</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">
+              Commit Message
+            </label>
+            <Input
+              value={commitMessage}
+              onChange={(e) => setCommitMessage(e.target.value)}
+              placeholder="Describe your changes"
+              className="bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600"
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setCommitDialogOpen(false)}
+              className="text-zinc-400 hover:text-white"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCommitAndPush}
+              disabled={gitLoading}
+              className="bg-blue-600 hover:bg-blue-500 text-white"
+            >
+              {gitLoading ? 'Pushing...' : 'Commit & Push'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <ResizablePanelGroup direction="horizontal">
         <ResizablePanel defaultSize={18} minSize={12} maxSize={30} className="border-r border-zinc-800 bg-[#09090b]">
           {workspaceId ? (

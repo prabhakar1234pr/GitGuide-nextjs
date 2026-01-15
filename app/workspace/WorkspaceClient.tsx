@@ -193,8 +193,12 @@ export default function WorkspaceClient() {
     }
   }
 
+  // Determine if this is a GitHub task (needs scrollbar) or IDE task (no scrollbar)
+  const isGitHubTask = taskDetails.task.task_type !== 'coding'
+  const overflowClass = isGitHubTask ? 'overflow-y-auto' : 'overflow-hidden'
+
   return (
-    <div className="h-screen overflow-hidden bg-[#1e1e1e]">
+    <div className={`h-screen ${overflowClass} bg-[#1e1e1e]`}>
       <WorkplaceIDE
         taskDetails={taskDetails}
         initialCompleted={isTaskCompleted}
