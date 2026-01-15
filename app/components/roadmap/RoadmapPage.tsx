@@ -22,6 +22,25 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
     completeConcept: completeConceptProgress,
   } = useProgress(projectId)
   
+  // Refresh progress when component becomes visible (user navigates back to roadmap)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refetchProgress()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [refetchProgress])
+  
+  // Also refresh progress periodically to catch Day 0 completion
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetchProgress()
+    }, 5000) // Refresh every 5 seconds
+    return () => clearInterval(interval)
+  }, [refetchProgress])
+  
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null)
   const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null)
   
@@ -83,6 +102,7 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
   const dayProgressMap = progress?.day_progress || {}
   const conceptProgressMap = progress?.concept_progress || {}
   const taskProgressMap = progress?.task_progress || {}
+  
   
   // Get roadmap context for chatbot
   const roadmapContext = {

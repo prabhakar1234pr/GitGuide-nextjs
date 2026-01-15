@@ -4,13 +4,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import { listFiles, createFile, deleteFile, type FileItem } from '../../lib/api-workspace'
 import GitPanel from './GitPanel'
-import type { GitCommitEntry, GitStatusResponse } from '../../lib/api-git'
+import type { GitCommitEntry, GitStatusResponse, CommitGraphEntry, BranchInfo } from '../../lib/api-git'
 import { useWorkspaceStore } from '../../hooks/useWorkspaceStore'
 import { 
   File, 
   Folder, 
   FolderOpen, 
-  ChevronRight, 
+  ChevronRight,
+  ChevronLeft,
   Plus, 
   FolderPlus, 
   RefreshCcw, 
@@ -47,6 +48,22 @@ interface FileExplorerProps {
   onPull?: () => void
   onPush?: () => void
   onGitRefresh?: () => void
+  onStage?: (files?: string[]) => Promise<void>
+  onUnstage?: (files?: string[]) => Promise<void>
+  onViewDiff?: (filePath: string, staged: boolean) => void
+  commitGraph?: CommitGraphEntry[]
+  commitBranches?: Record<string, string>
+  branches?: BranchInfo[]
+  conflicts?: string[]
+  onCreateBranch?: (name: string, startPoint?: string) => Promise<void>
+  onCheckoutBranch?: (name: string, create?: boolean) => Promise<void>
+  onDeleteBranch?: (name: string, force?: boolean) => Promise<void>
+  onResolveConflict?: (filePath: string, side: 'ours' | 'theirs' | 'both', content?: string) => Promise<void>
+  onGetConflictContent?: (filePath: string) => Promise<string>
+  onWriteFile?: (filePath: string, content: string) => Promise<void>
+  onMerge?: (branch: string, noFF: boolean, message?: string) => Promise<void>
+  onAbortMerge?: () => Promise<void>
+  onCommitClick?: (sha: string) => void
 }
 
 function FileIcon({ filename, isDirectory }: { filename: string; isDirectory: boolean }) {
@@ -73,6 +90,22 @@ export default function FileExplorer({
   onPull,
   onPush,
   onGitRefresh,
+  onStage,
+  onUnstage,
+  onViewDiff,
+  commitGraph = [],
+  commitBranches = {},
+  branches = [],
+  conflicts = [],
+  onCreateBranch,
+  onCheckoutBranch,
+  onDeleteBranch,
+  onResolveConflict,
+  onGetConflictContent,
+  onWriteFile,
+  onMerge,
+  onAbortMerge,
+  onCommitClick,
 }: FileExplorerProps) {
   const { getToken } = useAuth()
   const { closeFilesUnderPath } = useWorkspaceStore()
@@ -125,10 +158,15 @@ export default function FileExplorer({
       
       setError(null)
       // Close any open files under this path (handles files and directories)
+      // This must happen BEFORE deletion to ensure the file is closed
       closeFilesUnderPath(path)
+      
+      // Small delay to ensure file closing completes
+      await new Promise(resolve => setTimeout(resolve, 100))
       
       await deleteFile(workspaceId, path, token)
       
+      // Refresh file list
       loadRootFiles()
       setChildrenMap(new Map())
       onRefresh?.()
@@ -219,10 +257,23 @@ export default function FileExplorer({
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#09090b]">
-      <div className="h-10 flex items-center justify-between px-4 border-b border-zinc-800 bg-[#0c0c0e]">
+    <div className="flex flex-col h-full bg-[#09090b] relative">
+      <div className="h-10 flex items-center justify-between px-4 border-b border-zinc-800 bg-[#0c0c0e] shrink-0">
         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Explorer</span>
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-zinc-500 hover:text-zinc-200"
+            onClick={() => {
+              // This will be handled by parent
+              const event = new CustomEvent('explorer-collapse')
+              window.dispatchEvent(event)
+            }}
+            title="Hide Explorer"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -259,21 +310,8 @@ export default function FileExplorer({
         </div>
       </div>
 
-      {isGitPanelOpen && (
-        <div className="p-3 border-b border-zinc-800">
-          <GitPanel
-            status={gitStatus || null}
-            commits={gitCommits}
-            isLoading={gitLoading}
-            onPull={onPull || (() => {})}
-            onPush={onPush || (() => {})}
-            onRefresh={onGitRefresh || (() => {})}
-          />
-        </div>
-      )}
-
       {isCreating && (
-        <div className="p-3 bg-zinc-900 border-b border-zinc-800">
+        <div className="p-3 bg-zinc-900 border-b border-zinc-800 shrink-0">
           <input
             type="text"
             value={newFileName}
@@ -291,28 +329,59 @@ export default function FileExplorer({
       )}
 
       {error && (
-        <div className="mx-3 my-2 p-2 bg-red-500/10 border border-red-500/20 rounded flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+        <div className="mx-3 my-2 p-2 bg-red-500/10 border border-red-500/20 rounded flex items-start gap-2 animate-in fade-in slide-in-from-top-1 shrink-0">
           <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
           <p className="text-[10px] text-red-400 font-medium leading-tight">{error}</p>
         </div>
       )}
 
-      <ScrollArea className="flex-1 py-2">
-        {isLoading && rootFiles.length === 0 ? (
-          <div className="flex flex-col gap-2 px-4 py-2">
-            <Skeleton className="h-4 w-full bg-zinc-900" />
-            <Skeleton className="h-4 w-3/4 bg-zinc-900" />
-            <Skeleton className="h-4 w-5/6 bg-zinc-900" />
+      {isGitPanelOpen ? (
+        <div className="flex-1 min-h-0">
+          <div className="p-3 h-full flex flex-col">
+            <GitPanel
+              status={gitStatus || null}
+              commits={gitCommits}
+              isLoading={gitLoading}
+              onPull={onPull || (() => {})}
+              onPush={onPush || (() => {})}
+              onRefresh={onGitRefresh || (() => {})}
+              onStage={onStage}
+              onUnstage={onUnstage}
+              onViewDiff={onViewDiff}
+              commitGraph={commitGraph}
+              commitBranches={commitBranches}
+              onCommitClick={onCommitClick}
+              branches={branches}
+              onCreateBranch={onCreateBranch}
+              onCheckoutBranch={onCheckoutBranch}
+              onDeleteBranch={onDeleteBranch}
+              conflicts={conflicts}
+              onResolveConflict={onResolveConflict}
+              onGetConflictContent={onGetConflictContent}
+              onWriteFile={onWriteFile}
+              onMerge={onMerge}
+              onAbortMerge={onAbortMerge}
+            />
           </div>
-        ) : rootFiles.length === 0 ? (
-          <div className="px-4 py-8 text-center">
-            <File className="w-8 h-8 text-zinc-800 mx-auto mb-2" />
-            <p className="text-[10px] text-zinc-600 font-medium">Empty Workspace</p>
-          </div>
-        ) : (
-          rootFiles.map(file => renderNode(file, 0))
-        )}
-      </ScrollArea>
+        </div>
+      ) : (
+        <ScrollArea className="flex-1 py-2">
+          {isLoading && rootFiles.length === 0 ? (
+            <div className="flex flex-col gap-2 px-4 py-2">
+              <Skeleton className="h-4 w-full bg-zinc-900" />
+              <Skeleton className="h-4 w-3/4 bg-zinc-900" />
+              <Skeleton className="h-4 w-5/6 bg-zinc-900" />
+            </div>
+          ) : rootFiles.length === 0 ? (
+            <div className="px-4 py-8 text-center">
+              <File className="w-8 h-8 text-zinc-800 mx-auto mb-2" />
+              <p className="text-[10px] text-zinc-600 font-medium">Empty Workspace</p>
+            </div>
+          ) : (
+            rootFiles.map(file => renderNode(file, 0))
+          )}
+        </ScrollArea>
+      )}
     </div>
   )
 }

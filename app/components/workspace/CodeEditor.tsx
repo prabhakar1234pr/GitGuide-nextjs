@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import { type Task, completeTask } from '../../lib/api-roadmap'
 import { getOrCreateWorkspace, readFile, writeFile } from '../../lib/api-workspace'
@@ -12,8 +12,23 @@ import {
   commitChanges,
   checkExternalCommits, 
   resetExternalCommits,
+  stageFiles,
+  unstageFiles,
+  getFileDiff,
+  getCommitGraph,
+  listBranches,
+  createBranch,
+  checkoutBranch,
+  deleteBranch,
+  checkConflicts,
+  getConflictContent,
+  resolveConflict,
+  mergeBranch,
+  abortMerge,
   type GitCommitEntry,
-  type GitStatusResponse
+  type GitStatusResponse,
+  type CommitGraphEntry,
+  type BranchInfo
 } from '../../lib/api-git'
 import { startTaskSession, completeTaskSession } from '../../lib/api-task-sessions'
 import { useWorkspaceStore } from '../../hooks/useWorkspaceStore'
@@ -21,6 +36,7 @@ import MonacoEditor from './MonacoEditor'
 import FileExplorer from './FileExplorer'
 import TerminalTabs from './TerminalTabs'
 import GitPanel from './GitPanel'
+import DiffViewer from './DiffViewer'
 import UncommittedChangesDialog from './UncommittedChangesDialog'
 import ExternalCommitsNotification from './ExternalCommitsNotification'
 import { 
@@ -42,8 +58,10 @@ import {
   Terminal as TerminalIcon,
   AlertCircle,
   ChevronRight,
+  ChevronLeft,
   Loader2,
-  Clock
+  Clock,
+  Sidebar
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../../components/ui/tooltip'
 
@@ -81,6 +99,10 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
   const [gitStatus, setGitStatus] = useState<GitStatusResponse | null>(null)
   const [gitCommits, setGitCommits] = useState<GitCommitEntry[]>([])
   const [gitLoading, setGitLoading] = useState(false)
+  const [commitGraph, setCommitGraph] = useState<CommitGraphEntry[]>([])
+  const [commitBranches, setCommitBranches] = useState<Record<string, string>>({})
+  const [branches, setBranches] = useState<BranchInfo[]>([])
+  const [conflicts, setConflicts] = useState<string[]>([])
   const [isGitPanelOpen, setIsGitPanelOpen] = useState(false)
   const [uncommittedDialogOpen, setUncommittedDialogOpen] = useState(false)
   const [uncommittedFiles, setUncommittedFiles] = useState<string[]>([])
@@ -89,8 +111,32 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
   const [taskSessionId, setTaskSessionId] = useState<string | null>(null)
   const [commitDialogOpen, setCommitDialogOpen] = useState(false)
   const [commitMessage, setCommitMessage] = useState('')
+  const [diffViewerOpen, setDiffViewerOpen] = useState(false)
+  const [diffViewerFile, setDiffViewerFile] = useState<string | null>(null)
+  const [diffViewerStaged, setDiffViewerStaged] = useState(false)
+  const [diffContent, setDiffContent] = useState<string>('')
+  const [explorerCollapsed, setExplorerCollapsed] = useState(false)
 
   const activeFile = openFiles.find(f => f.path === activeFilePath)
+  
+  const handleToggleExplorer = useCallback(() => {
+    setExplorerCollapsed(prev => !prev)
+  }, [])
+
+  const handleContentChange = useCallback((newContent: string) => {
+    if (activeFilePath) updateFileContent(activeFilePath, newContent)
+  }, [activeFilePath, updateFileContent])
+
+  // Listen for collapse event from FileExplorer
+  useEffect(() => {
+    const handleCollapse = () => {
+      setExplorerCollapsed(true)
+    }
+    window.addEventListener('explorer-collapse', handleCollapse)
+    return () => {
+      window.removeEventListener('explorer-collapse', handleCollapse)
+    }
+  }, [])
 
   // Initialize workspace
   useEffect(() => {
@@ -153,11 +199,27 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
       openFile(path, content)
     } catch (err) {
       console.error('Failed to open file:', err)
-      setOutput(`Failed to open file: ${path}`)
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      // If file was deleted, close it from open files
+      if (errorMsg.includes('not found') || errorMsg.includes('deleted')) {
+        closeFile(path)
+        if (activeFilePath === path) {
+          // If this was the active file, switch to another file or clear selection
+          const otherFiles = openFiles.filter(f => f.path !== path)
+          if (otherFiles.length > 0) {
+            setActiveFilePath(otherFiles[0].path)
+          } else {
+            setActiveFilePath('')
+          }
+        }
+        setOutput(`File ${path} was deleted`)
+      } else {
+        setOutput(`Failed to open file: ${errorMsg}`)
+      }
     } finally {
       setIsLoadingFile(false)
     }
-  }, [workspaceId, openFiles, getToken, openFile, setActiveFilePath])
+  }, [workspaceId, openFiles, getToken, openFile, closeFile, setActiveFilePath, activeFilePath])
 
   const refreshGitData = useCallback(async () => {
     if (!workspaceId) return
@@ -165,21 +227,55 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
     try {
       const token = await getToken()
       if (!token) return
-      const [status, commits] = await Promise.all([
+      
+      // Use Promise.allSettled to handle all requests gracefully
+      const [statusResult, commitsResult, graphResult, branchesResult, conflictsResult] = await Promise.allSettled([
         getGitStatus(workspaceId, token),
-        getCommits(workspaceId, token)
+        getCommits(workspaceId, token),
+        getCommitGraph(workspaceId, token),
+        listBranches(workspaceId, token),
+        checkConflicts(workspaceId, token)
       ])
-      setGitStatus(status)
-      setGitCommits(commits.commits || [])
+      
+      // Handle git status
+      if (statusResult.status === 'fulfilled' && statusResult.value) {
+        setGitStatus(statusResult.value)
+      }
+      
+      // Handle commits
+      if (commitsResult.status === 'fulfilled' && commitsResult.value?.commits) {
+        setGitCommits(commitsResult.value.commits)
+      }
+      
+      // Handle commit graph
+      if (graphResult.status === 'fulfilled' && graphResult.value?.success) {
+        setCommitGraph(graphResult.value.commits || [])
+        setCommitBranches(graphResult.value.branches || {})
+      }
+      
+      // Handle branches
+      if (branchesResult.status === 'fulfilled' && branchesResult.value?.success && branchesResult.value.branches) {
+        setBranches(branchesResult.value.branches)
+      }
+      
+      // Handle conflicts
+      if (conflictsResult.status === 'fulfilled' && conflictsResult.value?.success) {
+        setConflicts(conflictsResult.value.conflicts || [])
+      }
 
+      // Check external commits (only if not dismissed)
       if (!externalDismissed) {
-        const external = await checkExternalCommits(workspaceId, token)
-        if (external.has_external_commits && external.external_commits) {
-          setExternalCommits(external.external_commits)
+        try {
+          const external = await checkExternalCommits(workspaceId, token)
+          if (external.has_external_commits && external.external_commits) {
+            setExternalCommits(external.external_commits)
+          }
+        } catch (err) {
+          // Silently ignore external commits check failures
         }
       }
     } catch (err) {
-      console.error('Failed to refresh git status:', err)
+      // Silently handle any unexpected errors
     } finally {
       setGitLoading(false)
     }
@@ -256,8 +352,12 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
           setOutput('Authentication required')
           return
         }
-        await pushToRemote(workspaceId, token, 'main')
-        setOutput('✓ Push completed')
+        const currentBranch = gitStatus?.branch || 'main'
+        // Check if this is a new branch that needs upstream tracking
+        const branchExists = branches.some(b => b.name === currentBranch)
+        const isNewBranch = !branchExists
+        await pushToRemote(workspaceId, token, currentBranch, isNewBranch)
+        setOutput(`✓ Push completed${isNewBranch ? ' (branch created on remote)' : ''}`)
         await refreshGitData()
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Unknown error'
@@ -270,7 +370,205 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
     
     // No changes and nothing to push
     setOutput('Nothing to push')
-  }, [workspaceId, gitStatus, getToken, refreshGitData])
+  }, [workspaceId, gitStatus, branches, getToken, refreshGitData])
+
+  const handleStage = useCallback(async (files?: string[]) => {
+    if (!workspaceId) return
+    setGitLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) {
+        setOutput('Authentication required')
+        return
+      }
+      await stageFiles(workspaceId, token, files)
+      setOutput(files ? `✓ Staged ${files.length} file(s)` : '✓ Staged all changes')
+      await refreshGitData()
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      setOutput(`Failed to stage: ${errorMsg}`)
+    } finally {
+      setGitLoading(false)
+    }
+  }, [workspaceId, getToken, refreshGitData])
+
+  const handleUnstage = useCallback(async (files?: string[]) => {
+    if (!workspaceId) return
+    setGitLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) {
+        setOutput('Authentication required')
+        return
+      }
+      await unstageFiles(workspaceId, token, files)
+      setOutput(files ? `✓ Unstaged ${files.length} file(s)` : '✓ Unstaged all files')
+      await refreshGitData()
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      setOutput(`Failed to unstage: ${errorMsg}`)
+    } finally {
+      setGitLoading(false)
+    }
+  }, [workspaceId, getToken, refreshGitData])
+
+  const handleViewDiff = useCallback(async (filePath: string, staged: boolean) => {
+    if (!workspaceId) return
+    try {
+      const token = await getToken()
+      if (!token) return
+      const result = await getFileDiff(workspaceId, token, filePath, staged)
+      if (result.success && result.diff) {
+        setDiffContent(result.diff)
+        setDiffViewerFile(filePath)
+        setDiffViewerStaged(staged)
+        setDiffViewerOpen(true)
+      } else {
+        setOutput(`Failed to load diff: ${result.error || 'Unknown error'}`)
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      setOutput(`Failed to load diff: ${errorMsg}`)
+    }
+  }, [workspaceId, getToken])
+
+  const handleCreateBranch = useCallback(async (name: string, startPoint?: string) => {
+    if (!workspaceId) return
+    setGitLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) return
+      await createBranch(workspaceId, token, name, startPoint)
+      setOutput(`✓ Branch "${name}" created`)
+      await refreshGitData()
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      setOutput(`Failed to create branch: ${errorMsg}`)
+    } finally {
+      setGitLoading(false)
+    }
+  }, [workspaceId, getToken, refreshGitData])
+
+  const handleCheckoutBranch = useCallback(async (name: string, create = false) => {
+    if (!workspaceId) return
+    setGitLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) return
+      const result = await checkoutBranch(workspaceId, token, name, create)
+      setOutput(`✓ Switched to branch "${name}"`)
+      // Store if this is a new branch for push tracking
+      if (create && result.is_new_branch) {
+        // New branches need upstream tracking when pushed
+        setOutput(`✓ Switched to branch "${name}" (new branch - will set upstream on first push)`)
+      }
+      await refreshGitData()
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      setOutput(`Failed to checkout branch: ${errorMsg}`)
+    } finally {
+      setGitLoading(false)
+    }
+  }, [workspaceId, getToken, refreshGitData])
+
+  const handleDeleteBranch = useCallback(async (name: string, force = false) => {
+    if (!workspaceId) return
+    
+    // Prevent deleting current branch
+    if (name === gitStatus?.branch) {
+      setOutput(`⚠️ Cannot delete the current branch "${name}". Switch to another branch first.`)
+      return
+    }
+    
+    setGitLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) return
+      await deleteBranch(workspaceId, token, name, force)
+      setOutput(`✓ Branch "${name}" deleted`)
+      await refreshGitData()
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      setOutput(`Failed to delete branch: ${errorMsg}`)
+      throw err // Re-throw so UI can show error
+    } finally {
+      setGitLoading(false)
+    }
+  }, [workspaceId, gitStatus?.branch, getToken, refreshGitData])
+
+  const handleGetConflictContent = useCallback(async (filePath: string): Promise<string> => {
+    if (!workspaceId) throw new Error('No workspace')
+    const token = await getToken()
+    if (!token) throw new Error('No token')
+    const result = await getConflictContent(workspaceId, token, filePath)
+    if (result.success && result.content) {
+      return result.content
+    }
+    throw new Error('Failed to get conflict content')
+  }, [workspaceId, getToken])
+
+  const handleResolveConflict = useCallback(async (filePath: string, side: 'ours' | 'theirs' | 'both', content?: string) => {
+    if (!workspaceId) return
+    setGitLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) return
+      await resolveConflict(workspaceId, token, filePath, side, content)
+      setOutput(`✓ Conflict resolved: ${filePath}`)
+      await refreshGitData()
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      setOutput(`Failed to resolve conflict: ${errorMsg}`)
+    } finally {
+      setGitLoading(false)
+    }
+  }, [workspaceId, getToken, refreshGitData])
+
+  const handleWriteFileForConflict = useCallback(async (filePath: string, content: string) => {
+    if (!workspaceId) return
+    const token = await getToken()
+    if (!token) return
+    await writeFile(workspaceId, filePath, content, token)
+  }, [workspaceId, getToken])
+
+  const handleMerge = useCallback(async (branch: string, noFF: boolean, message?: string) => {
+    if (!workspaceId) return
+    setGitLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) return
+      const result = await mergeBranch(workspaceId, token, branch, noFF, message)
+      if (result.has_conflicts) {
+        setOutput(`⚠️ Merge conflicts detected. Resolve them in the Conflicts tab.`)
+        await refreshGitData() // Refresh to show conflicts
+      } else {
+        setOutput(`✓ Merged "${branch}" into current branch`)
+        await refreshGitData()
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      setOutput(`Failed to merge: ${errorMsg}`)
+    } finally {
+      setGitLoading(false)
+    }
+  }, [workspaceId, getToken, refreshGitData])
+
+  const handleAbortMerge = useCallback(async () => {
+    if (!workspaceId) return
+    setGitLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) return
+      await abortMerge(workspaceId, token)
+      setOutput('✓ Merge aborted')
+      await refreshGitData()
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      setOutput(`Failed to abort merge: ${errorMsg}`)
+    } finally {
+      setGitLoading(false)
+    }
+  }, [workspaceId, getToken, refreshGitData])
 
   const handleCommitAndPush = useCallback(async () => {
     if (!workspaceId) return
@@ -278,6 +576,14 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
       setOutput('Commit message is required')
       return
     }
+    
+    // Check if there are staged files
+    const hasStagedFiles = gitStatus && gitStatus.staged && gitStatus.staged.length > 0
+    if (!hasStagedFiles) {
+      setOutput('No staged files to commit. Stage files first.')
+      return
+    }
+    
     setGitLoading(true)
     try {
       const token = await getToken()
@@ -286,21 +592,25 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
         return
       }
       await commitChanges(workspaceId, token, commitMessage.trim())
-      await pushToRemote(workspaceId, token, 'main')
-      setOutput('✓ Commit and push completed')
+        const currentBranch = gitStatus?.branch || 'main'
+        // Check if this is a new branch that needs upstream tracking
+        const branchExists = branches.some(b => b.name === currentBranch)
+        const isNewBranch = !branchExists
+        await pushToRemote(workspaceId, token, currentBranch, isNewBranch)
+        setOutput(`✓ Commit and push completed${isNewBranch ? ' (branch created on remote)' : ''}`)
       setCommitDialogOpen(false)
       await refreshGitData()
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error'
       if (errorMsg.toLowerCase().includes('nothing to commit')) {
-        setOutput('No changes to commit. Make sure you have saved your files.')
+        setOutput('No staged files to commit. Stage files first.')
       } else {
         setOutput(`Push failed: ${errorMsg}`)
       }
     } finally {
       setGitLoading(false)
     }
-  }, [workspaceId, commitMessage, getToken, refreshGitData])
+  }, [workspaceId, commitMessage, gitStatus, getToken, refreshGitData])
 
   const handleUncommittedAction = useCallback(async (action: 'commit' | 'stash' | 'discard' | 'cancel') => {
     setUncommittedDialogOpen(false)
@@ -402,6 +712,22 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
         onClose={() => setUncommittedDialogOpen(false)}
         onAction={handleUncommittedAction}
       />
+      {diffViewerOpen && diffViewerFile && (
+        <Dialog open={diffViewerOpen} onOpenChange={setDiffViewerOpen}>
+          <DialogContent className="bg-[#0c0c0e] border border-zinc-800 max-w-4xl max-h-[90vh] p-0">
+            <DiffViewer
+              filePath={diffViewerFile}
+              diff={diffContent}
+              staged={diffViewerStaged}
+              onClose={() => {
+                setDiffViewerOpen(false)
+                setDiffViewerFile(null)
+                setDiffContent('')
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
       <Dialog open={commitDialogOpen} onOpenChange={setCommitDialogOpen}>
         <DialogContent className="bg-[#0c0c0e] border border-zinc-800">
           <DialogHeader>
@@ -436,68 +762,73 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <ResizablePanelGroup direction="horizontal">
-        <ResizablePanel defaultSize={18} minSize={12} maxSize={30} className="border-r border-zinc-800 bg-[#09090b]">
-          {workspaceId ? (
-            <FileExplorer
-              workspaceId={workspaceId}
-              onFileSelect={handleFileSelect}
-              selectedFile={activeFilePath || undefined}
-              isGitPanelOpen={isGitPanelOpen}
-              onToggleGitPanel={() => setIsGitPanelOpen(prev => !prev)}
-              gitStatus={gitStatus}
-              gitCommits={gitCommits}
-              gitLoading={gitLoading}
-              onPull={handlePull}
-              onPush={handlePush}
-              onGitRefresh={refreshGitData}
-            />
-          ) : (
-            <div className="p-4 flex flex-col gap-2">
-              <Skeleton className="h-4 w-full bg-zinc-900" />
-              <Skeleton className="h-4 w-3/4 bg-zinc-900" />
-            </div>
-          )}
-        </ResizablePanel>
-
-        <ResizableHandle withHandle className="bg-zinc-800" />
-
-        {/* Center: Editor & Terminal */}
-        <ResizablePanel defaultSize={55}>
-          <ResizablePanelGroup direction="vertical">
-            <ResizablePanel defaultSize={70} className="flex flex-col">
-              {/* Tab Bar */}
-              <div className="flex items-center bg-[#0c0c0e] border-b border-zinc-800 overflow-x-auto no-scrollbar h-9">
-                {openFiles.map((file) => (
-                  <div
-                    key={file.path}
-                    onClick={() => setActiveFilePath(file.path)}
-                    className={`flex items-center gap-2 px-3 h-full cursor-pointer border-r border-zinc-800 min-w-0 transition-colors ${
-                      activeFilePath === file.path
-                        ? 'bg-[#18181b] text-white border-t-2 border-t-blue-500'
-                        : 'bg-[#0c0c0e] text-zinc-500 hover:text-zinc-300 hover:bg-[#121214]'
-                    }`}
-                  >
-                    <FileCode className={`w-3.5 h-3.5 ${activeFilePath === file.path ? 'text-blue-400' : 'text-zinc-600'}`} />
-                    <span className="text-[11px] font-medium truncate max-w-[120px]">
-                      {file.path.split('/').pop()}
-                    </span>
-                    {file.isDirty && <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); closeFile(file.path); }}
-                      className="ml-1 p-0.5 rounded-sm hover:bg-zinc-700 text-zinc-600 hover:text-zinc-300 transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-                {openFiles.length === 0 && (
-                  <div className="px-4 text-[11px] text-zinc-600 flex items-center gap-2">
-                    <ChevronRight className="w-3 h-3" /> Select a file to start coding
+      <div className="relative h-full">
+        {/* Restore button when collapsed */}
+        {explorerCollapsed && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 z-[100] pointer-events-auto">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleToggleExplorer}
+              className="h-10 w-8 bg-zinc-800 hover:bg-zinc-700 border-r-2 border-zinc-600 rounded-r-lg shadow-xl hover:shadow-2xl transition-all"
+              title="Show Explorer"
+            >
+              <ChevronRight className="w-5 h-5 text-zinc-200" />
+            </Button>
+          </div>
+        )}
+        
+        <ResizablePanelGroup direction="horizontal">
+          {!explorerCollapsed && (
+            <>
+              <ResizablePanel defaultSize={18} minSize={0} maxSize={40} collapsible className="border-r border-zinc-800 bg-[#09090b]">
+                {workspaceId ? (
+                  <FileExplorer
+                    workspaceId={workspaceId}
+                    onFileSelect={handleFileSelect}
+                    selectedFile={activeFilePath || undefined}
+                    isGitPanelOpen={isGitPanelOpen}
+                    onToggleGitPanel={() => setIsGitPanelOpen(prev => !prev)}
+                    gitStatus={gitStatus}
+                    gitCommits={gitCommits}
+                    gitLoading={gitLoading}
+                    onPull={handlePull}
+                    onPush={handlePush}
+                    onGitRefresh={refreshGitData}
+                    onStage={handleStage}
+                    onUnstage={handleUnstage}
+                    onViewDiff={handleViewDiff}
+                    commitGraph={commitGraph}
+                    commitBranches={commitBranches}
+                    branches={branches}
+                    conflicts={conflicts}
+                    onCreateBranch={handleCreateBranch}
+                    onCheckoutBranch={handleCheckoutBranch}
+                    onDeleteBranch={handleDeleteBranch}
+                    onResolveConflict={handleResolveConflict}
+                    onGetConflictContent={handleGetConflictContent}
+                    onWriteFile={handleWriteFileForConflict}
+                    onMerge={handleMerge}
+                    onAbortMerge={handleAbortMerge}
+                    onCommitClick={(sha) => {
+                      setOutput(`Selected commit: ${sha.slice(0, 7)}`)
+                    }}
+                  />
+                ) : (
+                  <div className="p-4 flex flex-col gap-2">
+                    <Skeleton className="h-4 w-full bg-zinc-900" />
+                    <Skeleton className="h-4 w-3/4 bg-zinc-900" />
                   </div>
                 )}
-              </div>
+              </ResizablePanel>
+              <ResizableHandle withHandle className="bg-zinc-800 hover:bg-zinc-700 transition-colors" />
+            </>
+          )}
 
+        {/* Center: Editor & Terminal */}
+        <ResizablePanel defaultSize={explorerCollapsed ? 82 : 55} minSize={40}>
+          <ResizablePanelGroup direction="vertical">
+            <ResizablePanel defaultSize={70} className="flex flex-col">
               {/* Editor Toolbar */}
               <div className="flex items-center justify-between px-4 h-10 bg-[#121214] border-b border-zinc-800">
                 <div className="flex items-center gap-2 overflow-hidden">
@@ -644,10 +975,7 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
+      </div>
     </div>
   )
-
-  function handleContentChange(newContent: string) {
-    if (activeFilePath) updateFileContent(activeFilePath, newContent)
-  }
 }

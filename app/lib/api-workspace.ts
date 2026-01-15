@@ -190,6 +190,9 @@ export async function readFile(
   )
 
   if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('File not found. It may have been deleted.')
+    }
     const error = await response.json().catch(() => ({ detail: 'Failed to read file' }))
     throw new Error(error.detail || 'Failed to read file')
   }

@@ -45,7 +45,12 @@ export default function TerminalComponent({
   const handleOutput = useCallback((data: string) => {
     log('OUTPUT', `Received ${data.length} chars`)
     if (!terminalReadyRef.current || !terminalRef.current) return
-    terminalRef.current.write(data)
+    try {
+      terminalRef.current.write(data)
+    } catch (err) {
+      // Silently handle write errors - terminal might be disposed
+      log('OUTPUT', 'Write error:', err)
+    }
   }, [])
 
   const handleConnected = useCallback((sessionId: string) => {
@@ -56,13 +61,23 @@ export default function TerminalComponent({
   const handleError = useCallback((message: string) => {
     log('ERROR', message)
     if (!terminalReadyRef.current || !terminalRef.current) return
-    terminalRef.current.write(`\r\n\x1b[31mError: ${message}\x1b[0m\r\n`)
+    try {
+      terminalRef.current.write(`\r\n\x1b[31mError: ${message}\x1b[0m\r\n`)
+    } catch (err) {
+      // Silently handle write errors
+      log('ERROR_WRITE', 'Error write failed:', err)
+    }
   }, [])
 
   const handleDisconnect = useCallback(() => {
     log('DISCONNECT', 'Disconnected from terminal')
     if (!terminalReadyRef.current || !terminalRef.current) return
-    terminalRef.current.write('\r\n\x1b[33mDisconnected from terminal\x1b[0m\r\n')
+    try {
+      terminalRef.current.write('\r\n\x1b[33mDisconnected from terminal\x1b[0m\r\n')
+    } catch (err) {
+      // Silently handle write errors
+      log('DISCONNECT_WRITE', 'Disconnect write failed:', err)
+    }
   }, [])
 
   // Initialize terminal hook (will be connected after token is fetched)
@@ -176,7 +191,21 @@ export default function TerminalComponent({
 
     try {
       term.open(containerRef.current)
-      fitAddon.fit()
+      
+      // Wait a tick before fitting to ensure terminal is fully mounted
+      setTimeout(() => {
+        try {
+          if (fitAddon && containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect()
+            if (rect.width > 0 && rect.height > 0) {
+              fitAddon.fit()
+            }
+          }
+        } catch (fitErr) {
+          // Silently handle fit errors - terminal might not be ready yet
+          log('FIT', 'Fit failed, will retry:', fitErr)
+        }
+      }, 0)
       
       terminalRef.current = term
       fitAddonRef.current = fitAddon
@@ -184,24 +213,35 @@ export default function TerminalComponent({
       terminalReadyRef.current = true
       log('INIT', 'Terminal instance created and opened')
 
-    // Handle terminal input
-    const dataListener = term.onData((data) => {
-      log('INPUT', `Sending ${data.length} chars`)
-      sendInput(data)
-    })
+      // Handle terminal input
+      const dataListener = term.onData((data) => {
+        log('INPUT', `Sending ${data.length} chars`)
+        sendInput(data)
+      })
 
-    // Handle resize
-    const resizeListener = term.onResize(({ cols, rows }) => {
-      resize(cols, rows)
-    })
+      // Handle resize - add defensive check
+      const resizeListener = term.onResize(({ cols, rows }) => {
+        try {
+          if (terminalRef.current && terminalReadyRef.current) {
+            resize(cols, rows)
+          }
+        } catch (resizeErr) {
+          // Silently handle resize errors
+          log('RESIZE', 'Resize callback error:', resizeErr)
+        }
+      })
 
-    listenersRef.current = [dataListener, resizeListener]
+      listenersRef.current = [dataListener, resizeListener]
 
       // Show connecting message
       term.write('Connecting to container...\r\n')
     } catch (err) {
       console.error('Failed to open/fit terminal:', err)
-      term.dispose()
+      try {
+        term.dispose()
+      } catch (disposeErr) {
+        // Ignore dispose errors
+      }
     }
   }, [sendInput, resize, isActive])
 
@@ -217,14 +257,19 @@ export default function TerminalComponent({
     if (!containerRef.current) return
 
     resizeObserverRef.current = new ResizeObserver(() => {
-      if (fitAddonRef.current && isActive && terminalRef.current) {
+      if (fitAddonRef.current && isActive && terminalRef.current && terminalReadyRef.current) {
         try {
           const rect = containerRef.current?.getBoundingClientRect()
           if (rect && rect.width > 0 && rect.height > 0) {
-            fitAddonRef.current.fit()
+            // Check if terminal element exists and has dimensions before fitting
+            const terminalElement = containerRef.current?.querySelector('.xterm')
+            if (terminalElement) {
+              fitAddonRef.current.fit()
+            }
           }
         } catch (e) {
-          // Terminal may be disposed
+          // Silently handle errors - terminal may be disposed or not ready
+          log('RESIZE_OBSERVER', 'Resize error:', e)
         }
       } else if (!terminalRef.current && isActive && Terminal) {
         // Try initializing if it wasn't due to dimensions
@@ -283,17 +328,24 @@ export default function TerminalComponent({
 
   // Handle active state changes
   useEffect(() => {
-    if (isActive && fitAddonRef.current && terminalRef.current) {
+    if (isActive && fitAddonRef.current && terminalRef.current && terminalReadyRef.current) {
       // Fit terminal when tab becomes active
       setTimeout(() => {
         try {
           const rect = containerRef.current?.getBoundingClientRect()
           if (rect && rect.width > 0 && rect.height > 0) {
-            fitAddonRef.current?.fit()
-            terminalRef.current?.focus()
+            // Check if terminal element exists before fitting
+            const terminalElement = containerRef.current?.querySelector('.xterm')
+            if (terminalElement && fitAddonRef.current) {
+              fitAddonRef.current.fit()
+            }
+            if (terminalRef.current) {
+              terminalRef.current.focus()
+            }
           }
         } catch (e) {
-          // Terminal may be disposed
+          // Silently handle errors - terminal may be disposed or not ready
+          log('ACTIVE_FIT', 'Active fit error:', e)
         }
       }, 50) // Small delay to ensure display: block has taken effect
     }

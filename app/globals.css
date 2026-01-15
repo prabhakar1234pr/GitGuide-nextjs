@@ -237,3 +237,12 @@ p {
     @apply bg-background text-foreground;
   }
 }
+
+/* ScrollArea - Always show scrollbar */
+[data-slot="scroll-area-scrollbar"] {
+  opacity: 1 !important;
+}
+
+[data-slot="scroll-area-scrollbar"]:not([data-state="visible"]) {
+  opacity: 1 !important;
+}

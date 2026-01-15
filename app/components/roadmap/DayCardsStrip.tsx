@@ -11,12 +11,42 @@ interface DayCardsStripProps {
 
 export default function DayCardsStrip({ days, currentDayId, onDayClick, progressMap }: DayCardsStripProps) {
   const getDayStatus = (day: RoadmapDay) => {
+    // First, check if there's a progress entry for this day
+    // This will return the actual status: 'todo', 'doing', or 'done'
     const progress = progressMap[day.day_id]
     if (progress) {
       return progress.progress_status
     }
-    // Default: locked if not day 0, todo if day 0
-    return day.day_number === 0 ? 'todo' : 'locked'
+    
+    // If no progress entry exists:
+    // - Day 0 is always available (defaults to 'todo')
+    // - Other days default to 'locked' unless previous day is completed
+    if (day.day_number === 0) {
+      return 'todo'
+    }
+    
+    // Check if previous day is completed to determine if this day is unlocked
+    // We need to check ALL previous days, not just the immediate previous one
+    // If any previous day is done, we can unlock this day
+    // But typically we check the immediate previous day
+    const previousDay = days.find(d => d.day_number === day.day_number - 1)
+    if (previousDay) {
+      const previousProgress = progressMap[previousDay.day_id]
+      // If previous day has progress_status 'done', unlock this day
+      if (previousProgress?.progress_status === 'done') {
+        return 'todo'
+      }
+      // Also check if previous day is Day 0 and has no progress entry (it's always available)
+      // But if Day 0 is completed, it should have progress_status 'done'
+      // So if Day 0 has no entry, it means it hasn't been started/completed yet
+    }
+    
+    // Special case: If Day 0 has no progress entry but Day 1 is being checked,
+    // we should still allow Day 1 to be unlocked if Day 0 exists and is available
+    // Actually, this shouldn't happen - Day 0 should always have a progress entry after initialization
+    
+    // Default: locked
+    return 'locked'
   }
 
   const getDayColor = (day: RoadmapDay) => {
@@ -78,7 +108,10 @@ export default function DayCardsStrip({ days, currentDayId, onDayClick, progress
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-800">
         {days.map((day) => {
           const isSelected = currentDayId === day.day_id
-          const isClickable = day.generated_status === 'generated' && getDayStatus(day) !== 'locked'
+          const dayStatus = getDayStatus(day)
+          // Allow clicking if day is unlocked (not locked), even if it's pending/generating
+          // This allows users to click on days that are being generated or are ready to be generated
+          const isClickable = dayStatus !== 'locked' && (day.generated_status === 'generated' || day.generated_status === 'pending' || day.generated_status === 'generating')
           
           return (
             <button
