@@ -414,12 +414,22 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
 
   const handleViewDiff = useCallback(async (filePath: string, staged: boolean) => {
     if (!workspaceId) return
+    
+    // Close any existing diff viewer first to reset state
+    setDiffViewerOpen(false)
+    setDiffViewerFile(null)
+    setDiffContent('')
+    
+    // Small delay to ensure state is reset
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
     try {
       const token = await getToken()
       if (!token) return
       const result = await getFileDiff(workspaceId, token, filePath, staged)
-      if (result.success && result.diff) {
-        setDiffContent(result.diff)
+      if (result.success) {
+        // Allow empty diff (for files with no changes or new files)
+        setDiffContent(result.diff || '')
         setDiffViewerFile(filePath)
         setDiffViewerStaged(staged)
         setDiffViewerOpen(true)
@@ -730,9 +740,24 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
         onClose={() => setUncommittedDialogOpen(false)}
         onAction={handleUncommittedAction}
       />
-      {diffViewerOpen && diffViewerFile && (
-        <Dialog open={diffViewerOpen} onOpenChange={setDiffViewerOpen}>
-          <DialogContent className="bg-[#0c0c0e] border border-zinc-800 max-w-4xl max-h-[90vh] p-0">
+      <Dialog 
+        open={diffViewerOpen && diffViewerFile !== null} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setDiffViewerOpen(false)
+            setDiffViewerFile(null)
+            setDiffContent('')
+          }
+        }}
+      >
+        <DialogContent 
+          className="bg-[#0c0c0e] border border-zinc-800 max-w-4xl max-h-[90vh] p-0 flex flex-col"
+          showCloseButton={false}
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>{diffViewerFile ? `Diff Viewer - ${diffViewerFile}` : 'Diff Viewer'}</DialogTitle>
+          </DialogHeader>
+          {diffViewerFile && (
             <DiffViewer
               filePath={diffViewerFile}
               diff={diffContent}
@@ -743,9 +768,9 @@ export default function CodeEditor({ task, projectId, onComplete, initialComplet
                 setDiffContent('')
               }}
             />
-          </DialogContent>
-        </Dialog>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
       <Dialog open={commitDialogOpen} onOpenChange={setCommitDialogOpen}>
         <DialogContent className="bg-[#0c0c0e] border border-zinc-800">
           <DialogHeader>
