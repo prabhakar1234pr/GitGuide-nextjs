@@ -334,7 +334,18 @@ export async function markContentRead(
     throw new Error(`Failed to mark content as read: ${response.statusText}`);
   }
 
-  return response.json();
+  const result = await response.json();
+
+  // Dispatch event for event-driven progress updates
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("progress:content:read", {
+        detail: { projectId, conceptId },
+      })
+    );
+  }
+
+  return result;
 }
 
 export async function startDay(
@@ -478,5 +489,16 @@ export async function completeTask(
     throw new Error(`Failed to complete task: ${response.statusText}`);
   }
 
-  return response.json();
+  const result = await response.json();
+
+  // Dispatch event for event-driven progress updates
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("progress:task:completed", {
+        detail: { projectId, taskId },
+      })
+    );
+  }
+
+  return result;
 }

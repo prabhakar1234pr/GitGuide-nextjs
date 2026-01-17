@@ -250,7 +250,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         <div className="h-full max-w-[1600px] mx-auto flex flex-col">
           {/* Main Content */}
           <div className="flex-1 px-4 md:px-6 py-3 overflow-hidden">
-            {project.status === "ready" ? (
+            {project.status === "ready" || project.status === "day0_ready" ? (
               <RoadmapPage projectId={projectId} />
             ) : (
               <ProcessingState status={project.status} />

@@ -6,6 +6,7 @@ import {
   createProjectClient,
   type CreateProjectData,
 } from "../../lib/api-client";
+import { type Project } from "../../lib/api";
 import { Button } from "@/components/ui/button";
 import { Loader2, Github, Check, Rocket } from "lucide-react";
 import {
@@ -18,7 +19,7 @@ import {
 interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onProjectCreated?: () => void;
+  onProjectCreated?: (project: Project) => void;
 }
 
 type ExperienceLevel = "beginner" | "intermediate" | "advanced";
@@ -69,8 +70,8 @@ export default function CreateProjectModal({
       };
       const response = await createProjectClient(projectData, token);
       if (response.success && response.project) {
+        if (onProjectCreated) onProjectCreated(response.project);
         onClose();
-        if (onProjectCreated) onProjectCreated();
       } else {
         throw new Error("Failed to create project");
       }

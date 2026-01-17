@@ -43,12 +43,28 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [refetchProgress]);
 
-  // Also refresh progress periodically to catch Day 0 completion
+  // Event-driven updates: Listen for progress changes from task/concept completion
   useEffect(() => {
-    const interval = setInterval(() => {
+    const handleProgressUpdate = () => {
       refetchProgress();
-    }, 5000); // Refresh every 5 seconds
-    return () => clearInterval(interval);
+    };
+
+    // Listen for custom events dispatched when tasks/concepts are completed
+    window.addEventListener("progress:task:completed", handleProgressUpdate);
+    window.addEventListener("progress:concept:completed", handleProgressUpdate);
+    window.addEventListener("progress:content:read", handleProgressUpdate);
+
+    return () => {
+      window.removeEventListener(
+        "progress:task:completed",
+        handleProgressUpdate
+      );
+      window.removeEventListener(
+        "progress:concept:completed",
+        handleProgressUpdate
+      );
+      window.removeEventListener("progress:content:read", handleProgressUpdate);
+    };
   }, [refetchProgress]);
 
   // Compute initial day ID
@@ -192,6 +208,12 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
 
   const handleCompleteConcept = async (conceptId: string) => {
     await completeConceptProgress(conceptId);
+    // Dispatch event for other components to know concept was completed
+    window.dispatchEvent(
+      new CustomEvent("progress:concept:completed", { detail: { conceptId } })
+    );
+    // Refetch progress to get latest state
+    await refetchProgress();
     if (dayDetails) {
       const currentIndex = dayDetails.concepts.findIndex(
         (c) => c.concept_id === conceptId

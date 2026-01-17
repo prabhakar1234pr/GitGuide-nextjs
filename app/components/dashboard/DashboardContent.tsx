@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
@@ -76,7 +76,7 @@ export default function DashboardContent({
     setMounted(true);
   }, []);
 
-  const refreshProjects = async () => {
+  const refreshProjects = useCallback(async () => {
     try {
       const token = await getToken();
       if (token) {
@@ -88,11 +88,15 @@ export default function DashboardContent({
     } catch (error) {
       console.error("Failed to refresh projects:", error);
     }
-  };
+  }, [getToken]);
 
   const handleModalClose = () => {
     setIsModalOpen(false);
-    refreshProjects();
+  };
+
+  const handleProjectCreated = (newProject: Project) => {
+    // Immediately add the new project to the list (Day 0 is ready)
+    setProjects((prev) => [newProject, ...prev]);
   };
 
   const formatDate = (dateString: string) => {
@@ -104,9 +108,20 @@ export default function DashboardContent({
     });
   };
 
-  const readyProjects = projects.filter((p) => p.status === "ready");
+  // Projects that can be clicked and navigated to (Day 0 content ready)
+  const readyProjects = projects.filter(
+    (p) => p.status === "ready" || p.status === "day0_ready"
+  );
+  // Projects still being created (Day 0 not yet ready)
   const processingProjects = projects.filter(
     (p) => p.status === "processing" || p.status === "created"
+  );
+  // Projects where background processing continues (for polling)
+  const backgroundProcessingProjects = projects.filter(
+    (p) =>
+      p.status === "processing" ||
+      p.status === "created" ||
+      p.status === "day0_ready"
   );
   const failedProjects = projects.filter((p) => p.status === "failed");
 
@@ -130,7 +145,7 @@ export default function DashboardContent({
   });
 
   useEffect(() => {
-    if (processingProjects.length > 0) {
+    if (backgroundProcessingProjects.length > 0) {
       refreshIntervalRef.current = setInterval(refreshProjects, 5000);
     } else if (refreshIntervalRef.current) {
       clearInterval(refreshIntervalRef.current);
@@ -139,7 +154,7 @@ export default function DashboardContent({
     return () => {
       if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
     };
-  }, [processingProjects.length, getToken, refreshProjects]);
+  }, [backgroundProcessingProjects.length, getToken, refreshProjects]);
 
   const handleDeleteConfirm = async () => {
     if (!deleteConfirmId) return;
@@ -160,22 +175,48 @@ export default function DashboardContent({
     }
   };
 
-  const getMotivationalMessage = (level: string) => {
-    switch (level?.toLowerCase()) {
-      case "beginner":
-        return "Big things have small beginnings.";
-      case "intermediate":
-        return "Complexity is your playground.";
-      case "advanced":
-        return "Architecting the future.";
-      default:
-        return "Build your vision.";
-    }
+  // 20 random motivational quotes
+  const motivationalQuotes = [
+    "Big things have small beginnings.",
+    "Complexity is your playground.",
+    "Architecting the future.",
+    "Build your vision.",
+    "Code is poetry written in logic.",
+    "Every expert was once a beginner.",
+    "Progress, not perfection.",
+    "Ship it, then iterate.",
+    "Learn by building, build by learning.",
+    "Your next breakthrough starts here.",
+    "Turn ideas into reality.",
+    "Master the craft, one commit at a time.",
+    "Innovation starts with curiosity.",
+    "Build something that matters.",
+    "The best code is code that works.",
+    "Dream it, build it, ship it.",
+    "Every line of code is a step forward.",
+    "Create, don't just consume.",
+    "Your journey to mastery begins now.",
+    "Build with purpose, code with passion.",
+  ];
+
+  const getMotivationalMessage = (projectId: string) => {
+    // Use projectId as seed for consistent quote per project
+    const hash = projectId
+      .split("")
+      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const index = hash % motivationalQuotes.length;
+    return motivationalQuotes[index];
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "ready":
+        return (
+          <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-emerald-500/20">
+            Ready
+          </Badge>
+        );
+      case "day0_ready":
         return (
           <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-emerald-500/20">
             Ready
@@ -410,7 +451,7 @@ export default function DashboardContent({
                   <CardFooter className="pt-0 flex justify-between items-center border-t border-zinc-800/50 mt-2 py-4">
                     {getStatusBadge(project.status)}
                     <span className="text-[10px] text-zinc-500 font-medium italic opacity-70">
-                      {getMotivationalMessage(project.skill_level)}
+                      {getMotivationalMessage(project.project_id)}
                     </span>
                   </CardFooter>
                 </Card>
@@ -449,7 +490,7 @@ export default function DashboardContent({
 
                   <div className="flex items-center gap-4 ml-2">
                     <span className="hidden xl:inline text-[10px] text-zinc-600 italic mr-2 opacity-60">
-                      {getMotivationalMessage(project.skill_level)}
+                      {getMotivationalMessage(project.project_id)}
                     </span>
                     {getStatusBadge(project.status)}
                     {mounted && (
@@ -494,7 +535,7 @@ export default function DashboardContent({
       <CreateProjectModal
         isOpen={isModalOpen}
         onClose={handleModalClose}
-        onProjectCreated={refreshProjects}
+        onProjectCreated={handleProjectCreated}
       />
 
       <Dialog
