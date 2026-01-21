@@ -21,6 +21,7 @@ interface RightSidePanelProps {
   isCompleted: boolean;
   isVerifying: boolean;
   onVerifyTask: () => void;
+  verificationResult: TaskVerificationResponse | null;
 
   // Git props
   gitStatus: GitStatusResponse | null;

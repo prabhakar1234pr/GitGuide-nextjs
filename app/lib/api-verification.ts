@@ -2,7 +2,7 @@
  * API client for task verification endpoints.
  */
 
-import { apiClient } from "./api-client";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface RequirementCheck {
   met: boolean;
@@ -39,17 +39,23 @@ export async function verifyTask(
     throw new Error("Authentication token required");
   }
 
-  const response = await apiClient.post<TaskVerificationResponse>(
-    `/api/tasks/${taskId}/verify`,
-    {
-      workspace_id: workspaceId,
+  const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}/verify`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+    body: JSON.stringify({
+      workspace_id: workspaceId,
+    }),
+  });
 
-  return response.data;
+  if (!response.ok) {
+    const error = await response
+      .json()
+      .catch(() => ({ detail: "Failed to verify task" }));
+    throw new Error(error.detail || "Failed to verify task");
+  }
+
+  return response.json();
 }

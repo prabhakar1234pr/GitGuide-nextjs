@@ -45,7 +45,7 @@ function TooltipTrigger({
     return React.cloneElement(el, {
       title: existingTitle ?? title,
       "data-slot": "tooltip-trigger",
-    });
+    } as React.HTMLAttributes<HTMLElement>);
   }
 
   return (

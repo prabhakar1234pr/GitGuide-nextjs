@@ -285,9 +285,9 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
           {dayDetails && (
             <>
               {/* Debug: Log concepts being passed to KanbanBoard */}
-              {process.env.NODE_ENV === "development" && (
-                <div className="hidden">
-                  {console.log("📊 Concepts for KanbanBoard:", {
+              {process.env.NODE_ENV === "development" &&
+                (() => {
+                  console.log("📊 Concepts for KanbanBoard:", {
                     dayId: selectedDayId,
                     dayNumber: dayDetails.day.day_number,
                     totalConcepts: dayDetails.concepts.length,
@@ -307,9 +307,9 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
                       !!conceptDetails?.concept?.content,
                     conceptDetailsContentLength:
                       conceptDetails?.concept?.content?.length || 0,
-                  })}
-                </div>
-              )}
+                  });
+                  return null;
+                })()}
               <KanbanBoard
                 concepts={dayDetails.concepts}
                 currentConceptId={selectedConceptId}

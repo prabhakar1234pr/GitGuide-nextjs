@@ -163,6 +163,37 @@ export async function stopWorkspace(
   return response.json();
 }
 
+export async function recreateWorkspace(
+  workspaceId: string,
+  token: string
+): Promise<{
+  success: boolean;
+  message: string;
+  workspace_id: string;
+  container_id: string;
+  status: string;
+  ports: Record<string, string>;
+}> {
+  const response = await fetch(
+    `${API_BASE}/api/workspaces/${workspaceId}/recreate`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response
+      .json()
+      .catch(() => ({ detail: "Failed to recreate workspace" }));
+    throw new Error(error.detail || "Failed to recreate workspace");
+  }
+
+  return response.json();
+}
+
 // File System Operations
 
 export async function listFiles(

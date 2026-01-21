@@ -6,6 +6,7 @@ import {
   listFiles,
   createFile,
   deleteFile,
+  renameFile,
   type FileItem,
 } from "../../lib/api-workspace";
 import { useWorkspaceStore } from "../../hooks/useWorkspaceStore";
@@ -25,6 +26,7 @@ import {
   FileTerminal,
   MoreVertical,
   AlertCircle,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -86,6 +88,9 @@ export default function FileExplorer({
   const [isCreating, setIsCreating] = useState(false);
   const [newFileName, setNewFileName] = useState("");
   const [createType, setCreateType] = useState<"file" | "folder">("file");
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renamingPath, setRenamingPath] = useState<string | null>(null);
+  const [newFileNameForRename, setNewFileNameForRename] = useState("");
 
   const loadRootFiles = useCallback(async () => {
     try {
@@ -178,6 +183,40 @@ export default function FileExplorer({
     }
   };
 
+  const handleRename = async () => {
+    if (!newFileNameForRename.trim() || !renamingPath) return;
+    setError(null);
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      // Get directory path and construct new path
+      const pathParts = renamingPath.split("/");
+      const directory = pathParts.slice(0, -1).join("/");
+      const newPath = directory
+        ? `${directory}/${newFileNameForRename.trim()}`
+        : newFileNameForRename.trim();
+
+      await renameFile(workspaceId, renamingPath, newPath, token);
+      setIsRenaming(false);
+      setRenamingPath(null);
+      setNewFileNameForRename("");
+      loadRootFiles();
+      setChildrenMap(new Map());
+      onRefresh?.();
+
+      // If the renamed file was selected, update selection
+      if (selectedFile === renamingPath) {
+        onFileSelect(newPath);
+      }
+    } catch (err) {
+      console.error("Rename error:", err);
+      setError(err instanceof Error ? err.message : "Failed to rename file");
+      // Auto-clear error after 3 seconds
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
   const renderNode = (file: FileItem, level: number) => {
     const isExpanded = expandedFolders.has(file.path);
     const isSelected = selectedFile === file.path;
@@ -233,6 +272,16 @@ export default function FileExplorer({
                 align="start"
                 className="bg-zinc-900 border-zinc-800 text-zinc-300"
               >
+                <DropdownMenuItem
+                  onClick={() => {
+                    setRenamingPath(file.path);
+                    setNewFileNameForRename(file.name);
+                    setIsRenaming(true);
+                  }}
+                  className="text-zinc-300 focus:text-zinc-200 focus:bg-zinc-800"
+                >
+                  <Pencil className="w-3.5 h-3.5 mr-2" /> Rename
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleDelete(file.path)}
                   className="text-red-400 focus:text-red-400 focus:bg-red-400/10"
@@ -343,6 +392,49 @@ export default function FileExplorer({
               onClick={handleCreate}
             >
               Create
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {isRenaming && (
+        <div className="p-3 bg-zinc-900 border-b border-zinc-800 shrink-0">
+          <input
+            type="text"
+            value={newFileNameForRename}
+            onChange={(e) => setNewFileNameForRename(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleRename();
+              } else if (e.key === "Escape") {
+                setIsRenaming(false);
+                setRenamingPath(null);
+                setNewFileNameForRename("");
+              }
+            }}
+            placeholder="New name..."
+            className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-[11px] text-zinc-200 focus:outline-none focus:ring-1 focus:ring-blue-600 mb-2"
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-[10px]"
+              onClick={() => {
+                setIsRenaming(false);
+                setRenamingPath(null);
+                setNewFileNameForRename("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-500 text-white"
+              onClick={handleRename}
+            >
+              Rename
             </Button>
           </div>
         </div>

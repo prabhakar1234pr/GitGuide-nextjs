@@ -122,12 +122,15 @@ export default function ConceptDetailPanel({
     );
   };
 
-  const getDifficultyBadge = (difficulty: string) => {
+  const getDifficultyBadge = (difficulty: string | null) => {
     const colors = {
       easy: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
       medium: "bg-blue-500/10 text-blue-500 border-blue-500/20",
       hard: "bg-red-500/10 text-red-500 border-red-500/20",
     };
+    if (!difficulty) {
+      return colors.medium;
+    }
     return colors[difficulty as keyof typeof colors] || colors.medium;
   };
 
@@ -326,7 +329,7 @@ export default function ConceptDetailPanel({
                                 variant="outline"
                                 className={`text-[9px] font-bold uppercase tracking-widest h-4 px-1 ${getDifficultyBadge(task.difficulty)}`}
                               >
-                                {task.difficulty}
+                                {task.difficulty || "medium"}
                               </Badge>
                             </div>
                             <p className="text-[10px] text-zinc-500 font-medium whitespace-nowrap">

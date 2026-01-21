@@ -21,6 +21,7 @@ export default function TaskPanel({
   isCompleted,
   isVerifying,
   onVerifyTask,
+  verificationResult,
 }: TaskPanelProps) {
   return (
     <div className="flex flex-col h-full">

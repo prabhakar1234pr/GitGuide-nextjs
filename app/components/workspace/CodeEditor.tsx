@@ -11,6 +11,7 @@ import {
   getOrCreateWorkspace,
   readFile,
   writeFile,
+  recreateWorkspace,
 } from "../../lib/api-workspace";
 import {
   getGitStatus,
@@ -81,6 +82,9 @@ import {
   AlertCircle,
   ChevronRight,
   Loader2,
+  Globe,
+  RefreshCw,
+  ExternalLink,
 } from "lucide-react";
 
 interface CodeEditorProps {
@@ -115,6 +119,7 @@ export default function CodeEditor({
   const [isLoadingWorkspace, setIsLoadingWorkspace] = useState(true);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_output, setOutput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isCompleted, setIsCompleted] = useState(initialCompleted || false);
@@ -142,6 +147,14 @@ export default function CodeEditor({
   const [diffViewerStaged, setDiffViewerStaged] = useState(false);
   const [diffContent, setDiffContent] = useState<string>("");
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
+  const [previewPortsOpen, setPreviewPortsOpen] = useState(false);
+  const [isRecreating, setIsRecreating] = useState(false);
+  const [previewPorts, setPreviewPorts] = useState<Record<string, string>>({
+    "3000": "http://localhost:30001",
+    "5000": "http://localhost:30002",
+    "5173": "http://localhost:30003",
+    "8080": "http://localhost:30005",
+  });
 
   const activeFile = openFiles.find((f) => f.path === activeFilePath);
 
@@ -338,7 +351,7 @@ export default function CodeEditor({
           if (external.has_external_commits && external.external_commits) {
             setExternalCommits(external.external_commits);
           }
-        } catch (err) {
+        } catch {
           // Silently ignore external commits check failures
         }
       }
@@ -768,7 +781,14 @@ export default function CodeEditor({
     } finally {
       setGitLoading(false);
     }
-  }, [workspaceId, commitMessage, gitStatus, getToken, refreshGitData]);
+  }, [
+    workspaceId,
+    commitMessage,
+    gitStatus,
+    branches,
+    getToken,
+    refreshGitData,
+  ]);
 
   const handleUncommittedAction = useCallback(
     async (action: "commit" | "stash" | "discard" | "cancel") => {
@@ -812,6 +832,34 @@ export default function CodeEditor({
       setGitLoading(false);
     }
   }, [workspaceId, getToken, refreshGitData]);
+
+  const handleRecreateWorkspace = useCallback(async () => {
+    if (!workspaceId) return;
+    setIsRecreating(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const result = await recreateWorkspace(workspaceId, token);
+      if (result.success && result.ports) {
+        // Convert ports format: {"3000/tcp": "http://localhost:30001"} -> {"3000": "http://localhost:30001"}
+        const portMap: Record<string, string> = {};
+        Object.entries(result.ports).forEach(([key, url]) => {
+          const port = key.replace("/tcp", "");
+          portMap[port] = url;
+        });
+        setPreviewPorts(portMap);
+      }
+      setOutput(
+        "✓ Workspace recreated with port mappings. Restart your dev server."
+      );
+    } catch (err) {
+      setOutput(
+        `Failed to recreate: ${err instanceof Error ? err.message : "Unknown error"}`
+      );
+    } finally {
+      setIsRecreating(false);
+    }
+  }, [workspaceId, getToken]);
 
   const handleVerifyTask = async () => {
     if (!workspaceId) {
@@ -971,6 +1019,70 @@ export default function CodeEditor({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={previewPortsOpen} onOpenChange={setPreviewPortsOpen}>
+        <DialogContent className="bg-[#0c0c0e] border border-zinc-800">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Globe className="w-5 h-5 text-blue-500" />
+              Preview Ports
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-zinc-400">
+              When you run a dev server (e.g.,{" "}
+              <code className="bg-zinc-800 px-1 rounded">npm run dev</code>),
+              access it using these URLs:
+            </p>
+            <div className="space-y-2">
+              {Object.entries(previewPorts).map(([port, url]) => (
+                <div
+                  key={port}
+                  className="flex items-center justify-between p-2 bg-zinc-900 rounded border border-zinc-800"
+                >
+                  <span className="text-sm text-zinc-300">
+                    Container port{" "}
+                    <code className="bg-zinc-800 px-1 rounded text-blue-400">
+                      {port}
+                    </code>
+                  </span>
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300"
+                  >
+                    {url}
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              ))}
+            </div>
+            <div className="pt-2 border-t border-zinc-800">
+              <p className="text-xs text-zinc-500 mb-3">
+                Connection refused? Your container may need port mappings. Click
+                below to fix:
+              </p>
+              <Button
+                onClick={handleRecreateWorkspace}
+                disabled={isRecreating}
+                className="w-full bg-zinc-800 hover:bg-zinc-700 text-white"
+              >
+                {isRecreating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Recreating...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Recreate Container with Port Mappings
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       <div className="relative h-full">
         {/* Restore button when collapsed */}
         {explorerCollapsed && (
@@ -1084,11 +1196,23 @@ export default function CodeEditor({
 
               {/* Bottom Panel: Terminal */}
               <ResizablePanel defaultSize={30} className="bg-[#0c0c0e]">
-                <div className="flex items-center gap-2 px-4 h-8 border-b border-zinc-800 bg-[#09090b]">
-                  <TerminalIcon className="w-3.5 h-3.5 text-zinc-500" />
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                    Terminal
-                  </span>
+                <div className="flex items-center justify-between px-4 h-8 border-b border-zinc-800 bg-[#09090b]">
+                  <div className="flex items-center gap-2">
+                    <TerminalIcon className="w-3.5 h-3.5 text-zinc-500" />
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                      Terminal
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPreviewPortsOpen(true)}
+                    className="h-6 px-2 text-[10px] font-medium text-zinc-500 hover:text-white"
+                    title="Preview running servers"
+                  >
+                    <Globe className="w-3 h-3 mr-1" />
+                    Preview
+                  </Button>
                 </div>
                 <div className="h-[calc(100%-32px)]">
                   {workspaceId ? (
@@ -1151,7 +1275,7 @@ export default function CodeEditor({
                 setOutput(`Selected commit: ${sha.slice(0, 7)}`);
               }}
               onResetToCommit={handleResetToCommit}
-              workspaceId={workspaceId}
+              workspaceId={workspaceId || undefined}
               projectId={projectId}
             />
           </ResizablePanel>

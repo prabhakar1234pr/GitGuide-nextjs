@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -79,74 +79,6 @@ export default function ConflictResolution({
     } finally {
       setIsResolving(false);
     }
-  };
-
-  const parseConflictMarkers = (content: string) => {
-    const lines = content.split("\n");
-    type Section = {
-      type: "ours" | "theirs" | "both" | "context";
-      content: string;
-      startLine: number;
-      endLine: number;
-    };
-    const sections: Section[] = [];
-    let currentSection: Section | null = null;
-
-    lines.forEach((line, index) => {
-      if (line.startsWith("<<<<<<<")) {
-        if (currentSection) {
-          currentSection.endLine = index - 1;
-          sections.push(currentSection);
-        }
-        currentSection = {
-          type: "ours",
-          content: "",
-          startLine: index,
-          endLine: index,
-        };
-      } else if (line.startsWith("=======")) {
-        if (currentSection) {
-          currentSection.endLine = index - 1;
-          sections.push(currentSection);
-          currentSection = {
-            type: "theirs",
-            content: "",
-            startLine: index,
-            endLine: index,
-          };
-        }
-      } else if (line.startsWith(">>>>>>>")) {
-        if (currentSection) {
-          currentSection.endLine = index - 1;
-          sections.push(currentSection);
-        }
-        currentSection = null;
-      } else if (currentSection) {
-        currentSection.content += line + "\n";
-      } else {
-        if (
-          sections.length === 0 ||
-          sections[sections.length - 1].type !== "context"
-        ) {
-          sections.push({
-            type: "context",
-            content: line + "\n",
-            startLine: index,
-            endLine: index,
-          });
-        } else {
-          sections[sections.length - 1].content += line + "\n";
-          sections[sections.length - 1].endLine = index;
-        }
-      }
-    });
-
-    if (currentSection !== null) {
-      (currentSection as Section).endLine = lines.length - 1;
-      sections.push(currentSection as Section);
-    }
-
-    return sections;
   };
 
   if (conflicts.length === 0) {
