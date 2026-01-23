@@ -83,6 +83,8 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const connectRef = useRef<(() => void) | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttemptsRef = useRef(10); // Maximum reconnection attempts
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [sessionId, setSessionId] = useState<string | null>(
     initialSessionId || null
@@ -98,6 +100,8 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
       wsRef.current.close();
       wsRef.current = null;
     }
+    // Reset reconnect attempts on manual cleanup
+    reconnectAttemptsRef.current = 0;
   }, []);
 
   // Connect to WebSocket
@@ -135,6 +139,8 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
           case "connected":
             log("WS_MSG", `Connected with session: ${message.session_id}`);
             setStatus("connected");
+            // Reset reconnect attempts on successful connection
+            reconnectAttemptsRef.current = 0;
             if (message.session_id) {
               setSessionId(message.session_id);
               onConnected?.(message.session_id);
@@ -175,12 +181,43 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
       wsRef.current = null;
       onDisconnect?.();
 
-      // Auto-reconnect if enabled
+      // Auto-reconnect if enabled (with exponential backoff and max attempts)
       if (autoReconnect && connectRef.current) {
-        log("WS_RECONNECT", `Scheduling reconnect in ${reconnectDelay}ms`);
+        // Don't reconnect if it was a normal closure (code 1000) or user-initiated
+        if (event.code === 1000) {
+          log("WS_CLOSE", "Normal closure, not reconnecting");
+          reconnectAttemptsRef.current = 0;
+          return;
+        }
+
+        // Check if we've exceeded max attempts
+        if (reconnectAttemptsRef.current >= maxReconnectAttemptsRef.current) {
+          log(
+            "WS_RECONNECT",
+            `Max reconnection attempts (${maxReconnectAttemptsRef.current}) reached. Stopping.`
+          );
+          setStatus("error");
+          onError?.(
+            `Connection failed after ${maxReconnectAttemptsRef.current} attempts. Please refresh the page.`
+          );
+          reconnectAttemptsRef.current = 0;
+          return;
+        }
+
+        // Exponential backoff: 3s, 6s, 12s, 24s, max 30s
+        const backoffDelay = Math.min(
+          reconnectDelay * Math.pow(2, reconnectAttemptsRef.current),
+          30000
+        );
+        reconnectAttemptsRef.current += 1;
+
+        log(
+          "WS_RECONNECT",
+          `Scheduling reconnect attempt ${reconnectAttemptsRef.current}/${maxReconnectAttemptsRef.current} in ${backoffDelay}ms`
+        );
         reconnectTimeoutRef.current = setTimeout(() => {
           connectRef.current?.();
-        }, reconnectDelay);
+        }, backoffDelay);
       }
     };
   }, [

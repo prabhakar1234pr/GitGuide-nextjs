@@ -88,6 +88,7 @@ export default function TerminalComponent({
   }, []);
 
   // Initialize terminal hook (will be connected after token is fetched)
+  // Use exponential backoff: start with 3s, max 30s, max 10 attempts
   const { status, connect, disconnect, sendInput, resize } = useTerminal({
     workspaceId,
     token: token || "",
@@ -97,7 +98,7 @@ export default function TerminalComponent({
     onError: handleError,
     onDisconnect: handleDisconnect,
     autoReconnect: true,
-    reconnectDelay: 3000,
+    reconnectDelay: 3000, // Base delay, will use exponential backoff
   });
 
   // Load xterm modules dynamically
