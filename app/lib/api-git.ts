@@ -3,7 +3,11 @@
  * Functions for interacting with backend git endpoints.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Use relative URLs to go through Next.js proxy (git endpoints are on VM)
+const API_BASE =
+  process.env.NEXT_PUBLIC_WORKSPACE_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "";
 
 export interface GitStatusResponse {
   success: boolean;

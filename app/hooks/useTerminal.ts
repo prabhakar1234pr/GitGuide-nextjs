@@ -5,7 +5,12 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// For WebSocket, we need the VM URL directly (WebSockets can't go through HTTP proxy)
+// In production, this should be the VM's HTTPS WebSocket URL (wss://)
+const API_BASE =
+  process.env.NEXT_PUBLIC_WORKSPACE_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8000";
 
 // Debug logging helper
 const DEBUG = process.env.NODE_ENV === "development";
@@ -13,13 +18,14 @@ const log = (tag: string, ...args: unknown[]) => {
   if (DEBUG) console.log(`[useTerminal:${tag}]`, ...args);
 };
 
-// Convert HTTP URL to WebSocket URL
+// Convert HTTP/HTTPS URL to WebSocket URL
 function getWebSocketUrl(
   workspaceId: string,
   token: string,
   sessionId?: string
 ): string {
-  const wsBase = API_BASE.replace(/^http/, "ws");
+  // Convert http:// to ws:// and https:// to wss://
+  const wsBase = API_BASE.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
   const params = new URLSearchParams({ token });
   if (sessionId) {
     params.append("session_id", sessionId);
