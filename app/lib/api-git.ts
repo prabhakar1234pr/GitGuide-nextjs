@@ -4,10 +4,8 @@
  */
 
 // Use relative URLs to go through Next.js proxy (git endpoints are on VM)
-const API_BASE =
-  process.env.NEXT_PUBLIC_WORKSPACE_API_BASE_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "";
+// Empty string means use relative URLs which go through /app/api/git/[...path] proxy
+const API_BASE = process.env.NEXT_PUBLIC_WORKSPACE_API_BASE_URL || "";
 
 export interface GitStatusResponse {
   success: boolean;
