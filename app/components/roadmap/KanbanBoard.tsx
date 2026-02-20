@@ -42,6 +42,7 @@ interface KanbanBoardProps {
   conceptDetails: ConceptDetails | null;
   loadingDetails: boolean;
   onProgressChange: () => Promise<void>;
+  isOwner?: boolean;
 }
 
 interface DroppableColumnProps {
@@ -104,6 +105,7 @@ export default function KanbanBoard({
   conceptDetails,
   loadingDetails,
   onProgressChange,
+  isOwner = false,
 }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [optimisticUpdates, setOptimisticUpdates] = useState<
@@ -203,8 +205,16 @@ export default function KanbanBoard({
         }
         await onStartConcept(conceptId);
       }
-      // Logic: Doing -> Done
+      // Logic: Doing -> Done (managers cannot complete - employees only)
       else if (currentStatus === "doing" && targetStatus === "done") {
+        if (isOwner) {
+          setOptimisticUpdates((prev) => {
+            const next = { ...prev };
+            delete next[conceptId];
+            return next;
+          });
+          return;
+        }
         await onCompleteConcept(conceptId);
       }
     } catch (err) {
@@ -372,6 +382,7 @@ export default function KanbanBoard({
                         concepts[concepts.length - 1]?.concept_id ===
                         concept.concept_id
                       }
+                      isOwner={isOwner}
                     />
                   ) : (
                     <ConceptCard

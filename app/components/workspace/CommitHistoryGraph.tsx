@@ -22,6 +22,7 @@ interface CommitHistoryGraphProps {
   onCommitClick?: (sha: string) => void;
   onResetToCommit?: (sha: string) => Promise<void>;
   isLoading?: boolean;
+  readOnly?: boolean;
 }
 
 export default function CommitHistoryGraph({
@@ -30,6 +31,7 @@ export default function CommitHistoryGraph({
   onCommitClick,
   onResetToCommit,
   isLoading = false,
+  readOnly = false,
 }: CommitHistoryGraphProps) {
   const [selectedCommit, setSelectedCommit] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState<string | null>(null);
@@ -206,7 +208,7 @@ export default function CommitHistoryGraph({
                       {commit.parents.length > 1 && (
                         <div className="text-[9px] text-zinc-600">Merge</div>
                       )}
-                      {onResetToCommit && (
+                      {onResetToCommit && !readOnly && (
                         <Button
                           variant="ghost"
                           size="icon"

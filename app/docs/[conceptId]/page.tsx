@@ -29,6 +29,7 @@ export default function DocsPage() {
 
   const conceptId = params.conceptId as string;
   const projectId = searchParams.get("project") || "";
+  const isOwner = searchParams.get("owner") === "true";
 
   const [conceptDetails, setConceptDetails] = useState<ConceptDetails | null>(
     null
@@ -143,7 +144,7 @@ export default function DocsPage() {
           // Ignore
         }
       }
-      router.push(`/workspace?task=${firstTask.task_id}`);
+      router.push(`/workspace?task=${firstTask.task_id}&owner=${isOwner}`);
     } else {
       // If no tasks, go back to roadmap
       router.push(`/project/${projectId}`);
@@ -588,7 +589,7 @@ export default function DocsPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {scrollProgress >= 95 && !isMarkedComplete && (
+            {scrollProgress >= 95 && !isMarkedComplete && !isOwner && (
               <button
                 onClick={handleMarkComplete}
                 disabled={isMarkingComplete}
@@ -620,7 +621,7 @@ export default function DocsPage() {
               </button>
             )}
 
-            {isMarkedComplete && (
+            {(isMarkedComplete || isOwner) && (
               <button
                 onClick={handleContinueToTasks}
                 className="px-6 py-2.5 bg-stone-800 hover:bg-stone-900 text-white rounded-full font-medium transition-colors shadow-lg shadow-stone-300"

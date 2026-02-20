@@ -25,6 +25,7 @@ interface ConflictResolutionProps {
   onGetContent: (filePath: string) => Promise<string>;
   onWriteFile: (filePath: string, content: string) => Promise<void>;
   isLoading?: boolean;
+  readOnly?: boolean;
 }
 
 export default function ConflictResolution({
@@ -32,6 +33,7 @@ export default function ConflictResolution({
   onResolve,
   onGetContent,
   onWriteFile,
+  readOnly = false,
 }: ConflictResolutionProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [resolvedContent, setResolvedContent] = useState<string>("");
@@ -163,7 +165,7 @@ export default function ConflictResolution({
                       variant="outline"
                       size="sm"
                       onClick={() => handleResolve("ours")}
-                      disabled={isResolving}
+                      disabled={isResolving || readOnly}
                       className="h-7 text-[10px] border-zinc-700 text-zinc-300"
                     >
                       Use Ours
@@ -172,7 +174,7 @@ export default function ConflictResolution({
                       variant="outline"
                       size="sm"
                       onClick={() => handleResolve("theirs")}
-                      disabled={isResolving}
+                      disabled={isResolving || readOnly}
                       className="h-7 text-[10px] border-zinc-700 text-zinc-300"
                     >
                       Use Theirs
@@ -189,7 +191,7 @@ export default function ConflictResolution({
                       value={resolvedContent}
                       onChange={setResolvedContent}
                       path={selectedFile}
-                      readOnly={false}
+                      readOnly={readOnly}
                     />
                   </div>
                 </div>
@@ -208,7 +210,7 @@ export default function ConflictResolution({
               </Button>
               <Button
                 onClick={() => handleResolve("both")}
-                disabled={isResolving || isLoadingContent}
+                disabled={isResolving || isLoadingContent || readOnly}
                 className="bg-blue-600 hover:bg-blue-500 text-white"
               >
                 {isResolving ? (

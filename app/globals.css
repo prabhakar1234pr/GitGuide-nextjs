@@ -316,3 +316,10 @@ p {
   text-transform: uppercase;
   color: rgb(113 113 122); /* zinc-500 */
 }
+
+/* Hide any Clerk branding links (e.g. "Powered by Clerk") that might appear elsewhere */
+.cl-signIn-root a[href*="clerk.com"],
+.cl-signUp-root a[href*="clerk.com"],
+.cl-userButton-root a[href*="clerk.com"] {
+  display: none !important;
+}

@@ -23,6 +23,7 @@ interface BranchManagementProps {
   onCheckoutBranch: (name: string, create?: boolean) => Promise<void>;
   onDeleteBranch: (name: string, force?: boolean) => Promise<void>;
   isLoading?: boolean;
+  readOnly?: boolean;
 }
 
 export default function BranchManagement({
@@ -32,6 +33,7 @@ export default function BranchManagement({
   onCheckoutBranch,
   onDeleteBranch,
   isLoading = false,
+  readOnly = false,
 }: BranchManagementProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newBranchName, setNewBranchName] = useState("");
@@ -142,7 +144,7 @@ export default function BranchManagement({
                             variant="ghost"
                             size="icon"
                             onClick={() => onCheckoutBranch(branch.name)}
-                            disabled={isLoading}
+                            disabled={isLoading || readOnly}
                             className="h-6 w-6 text-zinc-500 hover:text-white"
                             title="Checkout"
                           >
@@ -155,7 +157,7 @@ export default function BranchManagement({
                               setBranchToDelete(branch.name);
                               setDeleteDialogOpen(true);
                             }}
-                            disabled={isLoading}
+                            disabled={isLoading || readOnly}
                             className="h-6 w-6 text-zinc-500 hover:text-red-400"
                             title="Delete"
                           >
@@ -217,7 +219,7 @@ export default function BranchManagement({
             </Button>
             <Button
               onClick={handleCreateBranch}
-              disabled={isCreating || !newBranchName.trim()}
+              disabled={isCreating || !newBranchName.trim() || readOnly}
               className="bg-blue-600 hover:bg-blue-500 text-white"
             >
               {isCreating ? (
@@ -267,14 +269,18 @@ export default function BranchManagement({
             <Button
               variant="outline"
               onClick={() => handleDeleteBranch(false)}
-              disabled={isDeleting || branchToDelete === currentBranch}
+              disabled={
+                isDeleting || branchToDelete === currentBranch || readOnly
+              }
               className="border-zinc-700 text-zinc-300 hover:text-white"
             >
               Delete
             </Button>
             <Button
               onClick={() => handleDeleteBranch(true)}
-              disabled={isDeleting || branchToDelete === currentBranch}
+              disabled={
+                isDeleting || branchToDelete === currentBranch || readOnly
+              }
               className="bg-red-600 hover:bg-red-500 text-white"
             >
               {isDeleting ? (

@@ -25,6 +25,7 @@ interface TaskPanelProps {
   onVerifyTask: () => void;
   verificationResult?: TaskVerificationResponse | null;
   nextNavigation?: NextNavigation | null;
+  isOwner?: boolean;
 }
 
 export default function TaskPanel({
@@ -128,7 +129,9 @@ export default function TaskPanel({
                 asChild
                 className="w-full bg-white text-zinc-950 hover:bg-zinc-200 h-10 font-bold text-xs uppercase tracking-widest"
               >
-                <Link href={`/workspace?task=${nextNavigation.taskId}`}>
+                <Link
+                  href={`/workspace?task=${nextNavigation.taskId}&owner=${isOwner}`}
+                >
                   Continue to next task
                 </Link>
               </Button>
@@ -147,7 +150,7 @@ export default function TaskPanel({
                 </Button>
               )}
           </>
-        ) : (
+        ) : !isOwner ? (
           <Button
             type="button"
             onClick={(e) => {
@@ -165,7 +168,7 @@ export default function TaskPanel({
             )}
             {isVerifying ? "Verifying..." : "Verify Changes"}
           </Button>
-        )}
+        ) : null}
       </div>
     </div>
   );

@@ -3,13 +3,22 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import Header from "../components/Header";
 import DashboardContent from "../components/dashboard/DashboardContent";
+import AuthSyncError from "../components/dashboard/AuthSyncError";
 import Loading from "./loading";
 import Launching from "./launching";
-import { listUserProjects, syncUser } from "../lib/api";
+import { getCurrentUser, listUserProjects, syncUser } from "../lib/api";
 import { type Project } from "../lib/api";
 
+function isUserNotFoundError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return (
+    msg.toLowerCase().includes("user not found") ||
+    msg.toLowerCase().includes("user not found in database")
+  );
+}
+
 // Separate component for async data fetching
-async function ProjectsLoader() {
+async function ProjectsLoader({ userRole }: { userRole?: string }) {
   let projects: Project[] = [];
   try {
     const response = await listUserProjects();
@@ -19,11 +28,11 @@ async function ProjectsLoader() {
   } catch (error) {
     console.error("Failed to fetch projects:", error);
   }
-  return <DashboardContent projects={projects} />;
+  return <DashboardContent projects={projects} userRole={userRole} />;
 }
 
 async function waitForBackend() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
   const maxWaitMs = 15000;
   const start = Date.now();
 
@@ -51,19 +60,52 @@ async function BackendGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ role?: string }>;
+}) {
   const { userId } = await auth();
 
   if (!userId) {
     redirect("/sign-in");
   }
 
-  // Sync user data to database when they access the dashboard
+  const params = await searchParams;
+  const role =
+    params.role === "manager" || params.role === "employee"
+      ? params.role
+      : undefined;
+
+  // Sync user data to database when they access the dashboard (include role from sign-up redirect)
+  let authSyncFailed = false;
   try {
-    await syncUser();
+    await syncUser(role);
   } catch (error) {
-    // Log error but don't block the page - user can still use the app
     console.error("Failed to sync user to database:", error);
+    if (isUserNotFoundError(error)) authSyncFailed = true;
+  }
+
+  let userRole: string | undefined = role;
+  if (!authSyncFailed) {
+    try {
+      const userRes = await getCurrentUser();
+      if (userRes.success && userRes.user?.role) {
+        userRole = userRes.user.role;
+      }
+    } catch (error) {
+      if (isUserNotFoundError(error)) authSyncFailed = true;
+      userRole = role;
+    }
+  }
+
+  if (authSyncFailed) {
+    return (
+      <>
+        <Header />
+        <AuthSyncError />
+      </>
+    );
   }
 
   return (
@@ -72,7 +114,7 @@ export default async function DashboardPage() {
       <Suspense fallback={<Launching />}>
         <BackendGate>
           <Suspense fallback={<Loading />}>
-            <ProjectsLoader />
+            <ProjectsLoader userRole={userRole} />
           </Suspense>
         </BackendGate>
       </Suspense>

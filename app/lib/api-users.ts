@@ -1,18 +1,23 @@
 import { getAuthHeaders } from "./api-auth";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 /**
  * Sync user from Clerk to Supabase
  * Called automatically when user logs in
+ * @param role - Optional role (manager | employee) from sign-up flow
  */
-export async function syncUser() {
+export async function syncUser(role?: "manager" | "employee") {
   try {
     const headers = await getAuthHeaders();
 
+    const body = role ? JSON.stringify({ role }) : undefined;
     const response = await fetch(`${API_URL}/api/users/sync`, {
       method: "POST",
-      headers,
+      headers: body
+        ? { ...headers, "Content-Type": "application/json" }
+        : headers,
+      body,
     });
 
     if (!response.ok) {

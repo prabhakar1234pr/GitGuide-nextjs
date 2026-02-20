@@ -21,6 +21,7 @@ interface RightSidePanelProps {
   isCompleted: boolean;
   isVerifying: boolean;
   onVerifyTask: () => void;
+  isOwner?: boolean;
   verificationResult: TaskVerificationResponse | null;
   nextNavigation?: {
     type: "task" | "concept" | "day" | "complete";
@@ -73,6 +74,7 @@ export default function RightSidePanel({
   isVerifying,
   onVerifyTask,
   verificationResult,
+  isOwner = false,
   nextNavigation,
   gitStatus,
   gitCommits,
@@ -147,6 +149,7 @@ export default function RightSidePanel({
             onVerifyTask={onVerifyTask}
             verificationResult={verificationResult}
             nextNavigation={nextNavigation}
+            isOwner={isOwner}
           />
         </TabsContent>
 
@@ -158,6 +161,7 @@ export default function RightSidePanel({
             status={gitStatus}
             commits={gitCommits}
             isLoading={gitLoading}
+            readOnly={isOwner}
             onPull={onPull}
             onPush={onPush}
             onRefresh={onGitRefresh}

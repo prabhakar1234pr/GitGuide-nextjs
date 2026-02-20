@@ -46,6 +46,7 @@ interface FileExplorerProps {
   selectedFile?: string;
   onRefresh?: () => void;
   onGitRefresh?: () => void;
+  readOnly?: boolean;
 }
 
 function FileIcon({
@@ -75,6 +76,7 @@ export default function FileExplorer({
   selectedFile,
   onRefresh,
   onGitRefresh,
+  readOnly = false,
 }: FileExplorerProps) {
   const { getToken } = useAuth();
   const { closeFilesUnderPath } = useWorkspaceStore();
@@ -147,6 +149,7 @@ export default function FileExplorer({
   };
 
   const handleDelete = async (path: string) => {
+    if (readOnly) return;
     try {
       const token = await getToken();
       if (!token) return;
@@ -174,7 +177,7 @@ export default function FileExplorer({
   };
 
   const handleCreate = async () => {
-    if (!newFileName.trim()) return;
+    if (readOnly || !newFileName.trim()) return;
     setError(null);
     try {
       const token = await getToken();
@@ -210,7 +213,7 @@ export default function FileExplorer({
   };
 
   const handleRename = async () => {
-    if (!newFileNameForRename.trim() || !renamingPath) return;
+    if (readOnly || !newFileNameForRename.trim() || !renamingPath) return;
     setError(null);
     try {
       const token = await getToken();
@@ -241,7 +244,7 @@ export default function FileExplorer({
   };
 
   const handleMove = async (sourcePath: string, targetPath: string) => {
-    if (sourcePath === targetPath) return;
+    if (readOnly || sourcePath === targetPath) return;
 
     // Prevent moving into itself or its children
     if (targetPath.startsWith(sourcePath + "/")) {
@@ -378,6 +381,7 @@ export default function FileExplorer({
   };
 
   const startCreateInFolder = (parentPath: string, type: "file" | "folder") => {
+    if (readOnly) return;
     setCreateParentPath(parentPath);
     setCreateType(type);
     setIsCreating(true);
@@ -409,7 +413,7 @@ export default function FileExplorer({
               ? handleToggle(file.path)
               : onFileSelect(file.path)
           }
-          draggable={!isCreating && !isRenaming}
+          draggable={!readOnly && !isCreating && !isRenaming}
           onDragStart={(e) => handleDragStart(e, file)}
           onDragOver={(e) => handleDragOver(e, file.path, file.is_directory)}
           onDragEnter={handleDragEnter}
@@ -456,49 +460,58 @@ export default function FileExplorer({
                 align="start"
                 className="bg-zinc-900 border-zinc-800 text-zinc-300"
               >
-                {file.is_directory && (
+                {!readOnly && (
                   <>
+                    {file.is_directory && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startCreateInFolder(file.path, "file");
+                          }}
+                          className="text-zinc-300 focus:text-zinc-200 focus:bg-zinc-800"
+                        >
+                          <Plus className="w-3.5 h-3.5 mr-2" /> New File
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startCreateInFolder(file.path, "folder");
+                          }}
+                          className="text-zinc-300 focus:text-zinc-200 focus:bg-zinc-800"
+                        >
+                          <FolderPlus className="w-3.5 h-3.5 mr-2" /> New Folder
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-zinc-800" />
+                      </>
+                    )}
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
-                        startCreateInFolder(file.path, "file");
+                        setRenamingPath(file.path);
+                        setNewFileNameForRename(file.name);
+                        setIsRenaming(true);
                       }}
                       className="text-zinc-300 focus:text-zinc-200 focus:bg-zinc-800"
                     >
-                      <Plus className="w-3.5 h-3.5 mr-2" /> New File
+                      <Pencil className="w-3.5 h-3.5 mr-2" /> Rename
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
-                        startCreateInFolder(file.path, "folder");
+                        handleDelete(file.path);
                       }}
-                      className="text-zinc-300 focus:text-zinc-200 focus:bg-zinc-800"
+                      className="text-red-400 focus:text-red-400 focus:bg-red-400/10"
                     >
-                      <FolderPlus className="w-3.5 h-3.5 mr-2" /> New Folder
+                      <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-zinc-800" />
                   </>
                 )}
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setRenamingPath(file.path);
-                    setNewFileNameForRename(file.name);
-                    setIsRenaming(true);
-                  }}
-                  className="text-zinc-300 focus:text-zinc-200 focus:bg-zinc-800"
-                >
-                  <Pencil className="w-3.5 h-3.5 mr-2" /> Rename
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(file.path);
-                  }}
-                  className="text-red-400 focus:text-red-400 focus:bg-red-400/10"
-                >
-                  <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
-                </DropdownMenuItem>
+                {readOnly && (
+                  <DropdownMenuItem disabled className="text-zinc-500">
+                    View only — managers can&apos;t perform tasks
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -541,24 +554,28 @@ export default function FileExplorer({
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-zinc-500 hover:text-zinc-200"
-            onClick={() => startCreateInFolder("/workspace", "file")}
-            title="New File"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-zinc-500 hover:text-zinc-200"
-            onClick={() => startCreateInFolder("/workspace", "folder")}
-            title="New Folder"
-          >
-            <FolderPlus className="w-3.5 h-3.5" />
-          </Button>
+          {!readOnly && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-zinc-500 hover:text-zinc-200"
+                onClick={() => startCreateInFolder("/workspace", "file")}
+                title="New File"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-zinc-500 hover:text-zinc-200"
+                onClick={() => startCreateInFolder("/workspace", "folder")}
+                title="New Folder"
+              >
+                <FolderPlus className="w-3.5 h-3.5" />
+              </Button>
+            </>
+          )}
           <Button
             variant="ghost"
             size="icon"

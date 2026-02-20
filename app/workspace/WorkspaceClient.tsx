@@ -29,6 +29,7 @@ export default function WorkspaceClient() {
   const searchParams = useSearchParams();
   const { getToken } = useAuth();
   const taskId = searchParams.get("task");
+  const isOwnerFromUrl = searchParams.get("owner") === "true";
 
   const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null);
   const [dayDetails, setDayDetails] = useState<DayDetails | null>(null);
@@ -236,6 +237,11 @@ export default function WorkspaceClient() {
   const isGitHubTask = taskDetails.task.task_type !== "coding";
   const overflowClass = isGitHubTask ? "overflow-y-auto" : "overflow-hidden";
 
+  // isOwner: from URL param or from API (project.is_owner)
+  const isOwner =
+    isOwnerFromUrl ||
+    (taskDetails?.project as { is_owner?: boolean })?.is_owner === true;
+
   return (
     <div className={`h-screen ${overflowClass} bg-[#1e1e1e]`}>
       <WorkplaceIDE
@@ -244,6 +250,7 @@ export default function WorkspaceClient() {
         onProgressChange={handleProgressChange}
         nextTaskId={nextTaskId}
         nextNavigation={nextNavigation}
+        isOwner={isOwner}
       />
     </div>
   );

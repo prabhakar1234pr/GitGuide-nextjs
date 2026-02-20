@@ -12,9 +12,13 @@ import KanbanBoard from "./KanbanBoard";
 
 interface RoadmapPageProps {
   projectId: string;
+  isOwner?: boolean;
 }
 
-export default function RoadmapPage({ projectId }: RoadmapPageProps) {
+export default function RoadmapPage({
+  projectId,
+  isOwner = false,
+}: RoadmapPageProps) {
   const {
     days,
     loading: roadmapLoading,
@@ -310,6 +314,7 @@ export default function RoadmapPage({ projectId }: RoadmapPageProps) {
               conceptDetails={conceptDetails}
               loadingDetails={conceptDetailsLoading}
               onProgressChange={refetchProgress}
+              isOwner={isOwner}
             />
           </>
         )}

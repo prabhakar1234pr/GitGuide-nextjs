@@ -46,6 +46,7 @@ interface GitHubTaskPanelProps {
   nextTaskId?: string | null;
   nextNavigation?: NextNavigation | null;
   initialCompleted?: boolean;
+  isOwner?: boolean;
 }
 
 interface VerificationResult {
@@ -65,6 +66,7 @@ export default function GitHubTaskPanel({
   project,
   onComplete,
   initialCompleted,
+  isOwner = false,
 }: GitHubTaskPanelProps) {
   const { getToken } = useAuth();
   const [input, setInput] = useState("");
@@ -565,7 +567,17 @@ export default function GitHubTaskPanel({
               )}
             </div>
 
-            {task.task_type === "github_connect" ? (
+            {isOwner ? (
+              <div className="py-6 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500/90 text-center">
+                <AlertCircle className="w-8 h-8 mx-auto mb-3 opacity-80" />
+                <p className="text-sm font-medium">
+                  Managers can&apos;t perform tasks
+                </p>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Only employees can verify GitHub profiles, repos, and commits.
+                </p>
+              </div>
+            ) : task.task_type === "github_connect" ? (
               <div className="space-y-4">
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-2 block">
@@ -577,7 +589,7 @@ export default function GitHubTaskPanel({
                       value={patToken}
                       onChange={(e) => setPatToken(e.target.value)}
                       placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      disabled={isCompleted}
+                      disabled={isCompleted || isOwner}
                       className="bg-zinc-950/50 border-zinc-800 focus:border-blue-500/50 h-12 text-sm text-white placeholder:text-zinc-700 rounded-xl font-mono"
                     />
                     <Button
@@ -609,7 +621,7 @@ export default function GitHubTaskPanel({
                       onCheckedChange={(checked) =>
                         setConsentAccepted(checked === true)
                       }
-                      disabled={isCompleted}
+                      disabled={isCompleted || isOwner}
                       className="mt-0.5"
                     />
                     <label
@@ -630,7 +642,7 @@ export default function GitHubTaskPanel({
                   </div>
                 </div>
 
-                {!isCompleted && (
+                {!isCompleted && !isOwner && (
                   <Button
                     onClick={handleVerify}
                     disabled={
@@ -658,11 +670,11 @@ export default function GitHubTaskPanel({
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={config.placeholder}
-                    disabled={isCompleted}
+                    disabled={isCompleted || isOwner}
                     className="bg-zinc-950/50 border-zinc-800 focus:border-blue-500/50 h-12 text-sm text-white placeholder:text-zinc-700 rounded-xl"
                   />
                 </div>
-                {!isCompleted && (
+                {!isCompleted && !isOwner && (
                   <Button
                     onClick={handleVerify}
                     disabled={status === "verifying" || !input.trim()}

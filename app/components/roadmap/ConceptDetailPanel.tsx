@@ -29,6 +29,7 @@ interface ConceptDetailPanelProps {
   onComplete: () => Promise<void>;
   onProgressChange: () => Promise<void>;
   isLastConcept: boolean;
+  isOwner?: boolean;
 }
 
 export default function ConceptDetailPanel({
@@ -37,6 +38,7 @@ export default function ConceptDetailPanel({
   projectId,
   conceptProgress,
   taskProgress,
+  isOwner = false,
 }: ConceptDetailPanelProps) {
   const router = useRouter();
   const [showTasks, setShowTasks] = useState(false);
@@ -113,12 +115,14 @@ export default function ConceptDetailPanel({
   const isReadyToComplete = isContentRead && allTasksDone;
 
   const handleContentClick = () => {
-    router.push(`/docs/${concept.concept_id}?project=${projectId}`);
+    router.push(
+      `/docs/${concept.concept_id}?project=${projectId}&owner=${isOwner}`
+    );
   };
 
   const handleTaskClick = (taskId: string, taskType: Task["task_type"]) => {
     requestFullscreenForWorkspace(taskType);
-    router.push(`/workspace?task=${taskId}`);
+    router.push(`/workspace?task=${taskId}&owner=${isOwner}`);
   };
 
   const getTaskStatusIcon = (taskId: string) => {

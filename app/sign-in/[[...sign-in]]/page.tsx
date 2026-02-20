@@ -1,6 +1,19 @@
 import { SignIn } from "@clerk/nextjs";
 
-export default function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ role?: string }>;
+}) {
+  const params = await searchParams;
+  const resolvedRole =
+    params.role === "manager" || params.role === "employee"
+      ? params.role
+      : undefined;
+  const redirectUrl = resolvedRole
+    ? `/dashboard?role=${resolvedRole}`
+    : "/dashboard";
+
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">
       {/* Sign In Content - Centered */}
@@ -21,16 +34,13 @@ export default function SignInPage() {
           <SignIn
             routing="path"
             path="/sign-in"
-            forceRedirectUrl="/dashboard"
+            forceRedirectUrl={redirectUrl}
             appearance={{
               elements: {
                 rootBox: "mx-auto",
                 card: "shadow-none border border-zinc-200 rounded-lg",
                 headerTitle: "hidden",
                 headerSubtitle: "hidden",
-                footer: "hidden",
-                footerAction: "hidden",
-                footerActionText: "hidden",
               },
             }}
           />

@@ -29,4 +29,10 @@ export interface Project {
   github_username?: string; // GitHub username for this project
   github_consent_accepted?: boolean; // Whether user consented to auto-reset
   github_consent_timestamp?: string; // When consent was given
+  is_owner?: boolean; // True if current user owns the project (manager)
+}
+
+export interface AccessListItem {
+  user_id: string;
+  email: string;
 }

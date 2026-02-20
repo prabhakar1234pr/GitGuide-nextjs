@@ -30,6 +30,7 @@ interface GitPanelProps {
   status: GitStatusResponse | null;
   commits: GitCommitEntry[];
   isLoading?: boolean;
+  readOnly?: boolean;
   onPull: () => void;
   onPush: () => void;
   onRefresh: () => void;
@@ -64,6 +65,7 @@ export default function GitPanel({
   status,
   commits,
   isLoading,
+  readOnly = false,
   onPull,
   onPush,
   onRefresh,
@@ -109,6 +111,11 @@ export default function GitPanel({
   return (
     <Card className="bg-zinc-900/40 border-zinc-800 h-full flex flex-col">
       <CardContent className="p-4 flex flex-col flex-1 min-h-0">
+        {readOnly && (
+          <div className="mb-4 py-2 px-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500/90 text-[11px] font-medium">
+            Managers can&apos;t perform tasks — view only
+          </div>
+        )}
         <div className="flex items-center justify-between shrink-0 mb-4">
           <div className="flex items-center gap-2">
             <GitBranch className="w-4 h-4 text-zinc-400" />
@@ -231,7 +238,7 @@ export default function GitPanel({
                     variant="outline"
                     size="sm"
                     onClick={onPull}
-                    disabled={isLoading}
+                    disabled={isLoading || readOnly}
                     className="h-8 w-full border-zinc-800 text-zinc-300 hover:text-white"
                   >
                     <ArrowDown className="w-3.5 h-3.5 mr-1.5" />
@@ -241,7 +248,7 @@ export default function GitPanel({
                     variant="outline"
                     size="sm"
                     onClick={onPush}
-                    disabled={isLoading}
+                    disabled={isLoading || readOnly}
                     className="h-8 w-full border-zinc-800 text-zinc-300 hover:text-white"
                   >
                     <ArrowUp className="w-3.5 h-3.5 mr-1.5" />
@@ -269,6 +276,7 @@ export default function GitPanel({
                       onUnstage={onUnstage}
                       onViewDiff={onViewDiff}
                       isLoading={isLoading}
+                      readOnly={readOnly}
                     />
                   </div>
                 )}
@@ -323,6 +331,7 @@ export default function GitPanel({
                   onCommitClick={onCommitClick}
                   onResetToCommit={onResetToCommit}
                   isLoading={isLoading}
+                  readOnly={readOnly}
                 />
               </div>
             </ScrollArea>
@@ -342,6 +351,7 @@ export default function GitPanel({
                     onCheckoutBranch={onCheckoutBranch}
                     onDeleteBranch={onDeleteBranch}
                     isLoading={isLoading}
+                    readOnly={readOnly}
                   />
                 ) : (
                   <div className="text-zinc-500 text-sm p-4 text-center">
@@ -366,6 +376,7 @@ export default function GitPanel({
                     onAbortMerge={onAbortMerge || (async () => {})}
                     hasConflicts={hasConflicts}
                     isLoading={isLoading}
+                    readOnly={readOnly}
                   />
                 ) : (
                   <div className="text-zinc-500 text-sm p-4 text-center">
@@ -390,6 +401,7 @@ export default function GitPanel({
                       onGetContent={onGetConflictContent}
                       onWriteFile={onWriteFile}
                       isLoading={isLoading}
+                      readOnly={readOnly}
                     />
                   ) : (
                     <div className="text-zinc-500 text-sm p-4 text-center">

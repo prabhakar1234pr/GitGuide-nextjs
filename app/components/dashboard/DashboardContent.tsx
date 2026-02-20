@@ -41,6 +41,7 @@ import {
   AlertCircle,
   Clock,
   Calendar,
+  UserPlus,
 } from "lucide-react";
 
 const CreateProjectModal = dynamic(
@@ -53,6 +54,7 @@ const CreateProjectModal = dynamic(
 
 interface DashboardContentProps {
   projects: Project[];
+  userRole?: string;
 }
 
 type ViewType = "grid" | "list";
@@ -60,6 +62,7 @@ type SortOption = "most-recent" | "name-asc" | "name-desc" | "oldest-first";
 
 export default function DashboardContent({
   projects: initialProjects,
+  userRole,
 }: DashboardContentProps) {
   const router = useRouter();
   const { getToken } = useAuth();
@@ -95,8 +98,7 @@ export default function DashboardContent({
   };
 
   const handleProjectCreated = (newProject: Project) => {
-    // Immediately add the new project to the list (Day 0 is ready)
-    setProjects((prev) => [newProject, ...prev]);
+    setProjects((prev) => [{ ...newProject, is_owner: true }, ...prev]);
   };
 
   const formatDate = (dateString: string) => {
@@ -231,7 +233,17 @@ export default function DashboardContent({
         {/* Dashboard Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">My Projects</h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold text-white">My Projects</h1>
+              {userRole && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] uppercase font-semibold tracking-wider border-zinc-600 text-zinc-400 bg-zinc-800/50"
+                >
+                  {userRole}
+                </Badge>
+              )}
+            </div>
             <p className="text-zinc-500">
               Manage and track your AI-powered learning roadmaps.
             </p>
@@ -379,7 +391,7 @@ export default function DashboardContent({
                   className="bg-zinc-900 border-zinc-800 hover:border-zinc-700 transition-all group cursor-pointer relative"
                   onClick={() => router.push(`/project/${project.project_id}`)}
                 >
-                  {mounted && (
+                  {mounted && project.is_owner && (
                     <div
                       className="absolute top-4 right-4 z-10"
                       onClick={(e) => e.stopPropagation()}
@@ -398,6 +410,17 @@ export default function DashboardContent({
                           align="end"
                           className="bg-zinc-900 border-zinc-800 text-zinc-300"
                         >
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() =>
+                              router.push(
+                                `/project/${project.project_id}/access`
+                              )
+                            }
+                          >
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Grant access
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-red-400 focus:text-red-400 focus:bg-red-400/10 cursor-pointer"
                             onClick={() =>
@@ -482,7 +505,7 @@ export default function DashboardContent({
                       {getMotivationalMessage(project.project_id)}
                     </span>
                     {getStatusBadge(project.status)}
-                    {mounted && (
+                    {mounted && project.is_owner && (
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           asChild
@@ -500,6 +523,18 @@ export default function DashboardContent({
                           align="end"
                           className="bg-zinc-900 border-zinc-800 text-zinc-300"
                         >
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(
+                                `/project/${project.project_id}/access`
+                              );
+                            }}
+                          >
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Grant access
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-red-400 focus:text-red-400 focus:bg-red-400/10 cursor-pointer"
                             onClick={(e) => {

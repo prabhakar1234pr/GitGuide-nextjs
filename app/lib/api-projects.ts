@@ -1,7 +1,7 @@
 import { getAuthHeaders } from "./api-auth";
 import type { CreateProjectData } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 /**
  * Create a new project (server-side)

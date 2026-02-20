@@ -95,6 +95,7 @@ interface CodeEditorProps {
   projectId: string;
   onComplete: () => void;
   initialCompleted?: boolean;
+  isOwner?: boolean;
   nextNavigation?: {
     type: "task" | "concept" | "day" | "complete";
     taskId?: string;
@@ -111,6 +112,7 @@ export default function CodeEditor({
   projectId,
   onComplete,
   initialCompleted,
+  isOwner = false,
   nextNavigation,
 }: CodeEditorProps) {
   const { getToken } = useAuth();
@@ -478,7 +480,7 @@ export default function CodeEditor({
   }, [workspaceId, getToken, refreshGitData]);
 
   const handlePush = useCallback(async () => {
-    if (!workspaceId) return;
+    if (!workspaceId || isOwner) return;
 
     // Check if there are uncommitted changes
     const hasUncommittedChanges =
@@ -523,11 +525,11 @@ export default function CodeEditor({
 
     // No changes and nothing to push
     setOutput("Nothing to push");
-  }, [workspaceId, gitStatus, branches, getToken, refreshGitData]);
+  }, [workspaceId, isOwner, gitStatus, branches, getToken, refreshGitData]);
 
   const handleStage = useCallback(
     async (files?: string[]) => {
-      if (!workspaceId) return;
+      if (!workspaceId || isOwner) return;
       setGitLoading(true);
       try {
         const token = await getToken();
@@ -547,12 +549,12 @@ export default function CodeEditor({
         setGitLoading(false);
       }
     },
-    [workspaceId, getToken, refreshGitData]
+    [workspaceId, isOwner, getToken, refreshGitData]
   );
 
   const handleUnstage = useCallback(
     async (files?: string[]) => {
-      if (!workspaceId) return;
+      if (!workspaceId || isOwner) return;
       setGitLoading(true);
       try {
         const token = await getToken();
@@ -572,7 +574,7 @@ export default function CodeEditor({
         setGitLoading(false);
       }
     },
-    [workspaceId, getToken, refreshGitData]
+    [workspaceId, isOwner, getToken, refreshGitData]
   );
 
   const handleViewDiff = useCallback(
@@ -785,7 +787,7 @@ export default function CodeEditor({
 
   const handleResetToCommit = useCallback(
     async (sha: string) => {
-      if (!workspaceId) return;
+      if (!workspaceId || isOwner) return;
       setGitLoading(true);
       try {
         const token = await getToken();
@@ -801,11 +803,11 @@ export default function CodeEditor({
         setGitLoading(false);
       }
     },
-    [workspaceId, getToken, refreshGitData]
+    [workspaceId, isOwner, getToken, refreshGitData]
   );
 
   const handleCommitAndPush = useCallback(async () => {
-    if (!workspaceId) return;
+    if (!workspaceId || isOwner) return;
     if (!commitMessage.trim()) {
       setOutput("Commit message is required");
       return;
@@ -849,6 +851,7 @@ export default function CodeEditor({
     }
   }, [
     workspaceId,
+    isOwner,
     commitMessage,
     gitStatus,
     branches,
@@ -880,7 +883,7 @@ export default function CodeEditor({
   );
 
   const handleExternalReset = useCallback(async () => {
-    if (!workspaceId) return;
+    if (!workspaceId || isOwner) return;
     setGitLoading(true);
     try {
       const token = await getToken();
@@ -897,7 +900,7 @@ export default function CodeEditor({
     } finally {
       setGitLoading(false);
     }
-  }, [workspaceId, getToken, refreshGitData]);
+  }, [workspaceId, isOwner, getToken, refreshGitData]);
 
   const handleRecreateWorkspace = useCallback(async () => {
     if (!workspaceId) return;
@@ -1226,6 +1229,7 @@ export default function CodeEditor({
                     onFileSelect={handleFileSelect}
                     selectedFile={activeFilePath || undefined}
                     onGitRefresh={refreshGitData}
+                    readOnly={isOwner}
                   />
                 ) : (
                   <div className="p-4 flex flex-col gap-2">
@@ -1268,11 +1272,16 @@ export default function CodeEditor({
                     )}
                   </div>
                   <div className="flex items-center gap-2">
+                    {isOwner && (
+                      <span className="text-[10px] font-medium text-amber-500/90">
+                        Managers can&apos;t perform tasks
+                      </span>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={handleSave}
-                      disabled={isSaving || !activeFile?.isDirty}
+                      disabled={isSaving || !activeFile?.isDirty || isOwner}
                       className="h-7 px-2.5 text-[11px] font-medium text-zinc-400 hover:text-white"
                     >
                       <Save className="w-3.5 h-3.5 mr-1.5" />
@@ -1283,12 +1292,18 @@ export default function CodeEditor({
 
                 {/* Editor */}
                 <div className="flex-1 relative bg-[#18181b]">
+                  {isOwner && (
+                    <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center py-2 bg-amber-500/10 border-b border-amber-500/20 text-amber-500 text-xs font-medium">
+                      Managers can&apos;t perform tasks — view only
+                    </div>
+                  )}
                   {activeFile ? (
                     <MonacoEditor
                       value={activeFile.content}
                       onChange={handleContentChange}
                       path={activeFile.path}
                       onSave={handleSave}
+                      readOnly={isOwner}
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-4 opacity-40">
@@ -1380,6 +1395,7 @@ export default function CodeEditor({
               isVerifying={isVerifying}
               onVerifyTask={handleVerifyTask}
               verificationResult={verificationResult}
+              isOwner={isOwner}
               nextNavigation={nextNavigation}
               gitStatus={gitStatus}
               gitCommits={gitCommits}

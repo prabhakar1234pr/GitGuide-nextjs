@@ -127,3 +127,70 @@ export async function deleteProject(projectId: string, token: string | null) {
     throw error;
   }
 }
+
+/**
+ * Grant project access to an employee by email (manager only)
+ */
+export async function grantProjectAccess(
+  projectId: string,
+  email: string,
+  token: string | null
+) {
+  if (!token) throw new Error("Authentication required");
+  const response = await fetch(`${API_URL}/api/projects/${projectId}/access`, {
+    method: "POST",
+    headers: getAuthHeadersClient(token),
+    body: JSON.stringify({ email }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(
+      err.detail || `Failed to grant access (${response.status})`
+    );
+  }
+  return response.json();
+}
+
+/**
+ * List emails with access to a project (manager only)
+ */
+export async function listProjectAccess(
+  projectId: string,
+  token: string | null
+): Promise<{
+  success: boolean;
+  access_list: { user_id: string; email: string }[];
+}> {
+  if (!token) throw new Error("Authentication required");
+  const response = await fetch(`${API_URL}/api/projects/${projectId}/access`, {
+    method: "GET",
+    headers: getAuthHeadersClient(token),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to list access (${response.status})`);
+  }
+  return response.json();
+}
+
+/**
+ * Revoke project access from an employee (manager only)
+ */
+export async function revokeProjectAccess(
+  projectId: string,
+  userId: string,
+  token: string | null
+) {
+  if (!token) throw new Error("Authentication required");
+  const response = await fetch(
+    `${API_URL}/api/projects/${projectId}/access/${userId}`,
+    { method: "DELETE", headers: getAuthHeadersClient(token) }
+  );
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(
+      err.detail || `Failed to revoke access (${response.status})`
+    );
+  }
+  return response.json();
+}

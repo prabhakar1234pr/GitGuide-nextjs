@@ -30,6 +30,7 @@ interface WorkplaceIDEProps {
   nextTaskId?: string | null;
   nextNavigation?: NextNavigation | null;
   initialCompleted?: boolean;
+  isOwner?: boolean;
 }
 
 const getTaskTypeStyle = (taskType: Task["task_type"]) => {
@@ -64,6 +65,7 @@ export default function WorkplaceIDE({
   onProgressChange,
   nextTaskId,
   nextNavigation,
+  isOwner = false,
 }: WorkplaceIDEProps) {
   const { task, concept, day, project } = taskDetails;
   const [isCompleted, setIsCompleted] = useState(initialCompleted || false);
@@ -178,6 +180,7 @@ export default function WorkplaceIDE({
             initialCompleted={isCompleted}
             nextTaskId={nextTaskId}
             nextNavigation={nextNavigation}
+            isOwner={isOwner}
           />
         );
 
@@ -327,7 +330,7 @@ export default function WorkplaceIDE({
           </div>
 
           <div className="flex items-center gap-3">
-            {isCompleted && nextNavigation && (
+            {(isCompleted || isOwner) && nextNavigation && (
               <Button
                 asChild
                 className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-full px-6 h-10 font-bold text-xs uppercase tracking-widest"
@@ -335,7 +338,7 @@ export default function WorkplaceIDE({
                 <Link
                   href={
                     nextNavigation.type === "task"
-                      ? `/workspace?task=${nextNavigation.taskId}`
+                      ? `/workspace?task=${nextNavigation.taskId}&owner=${isOwner}`
                       : `/project/${project.project_id}`
                   }
                   onClick={() => {

@@ -68,10 +68,8 @@ export default function RootLayout({
             "focus:ring-zinc-900 focus:border-zinc-900 text-[14px] border-zinc-300",
           card: "shadow-none border border-zinc-200",
           footerActionLink: "text-zinc-900 hover:text-zinc-700",
-          // Hide any "Secured by Clerk"/branding footer UI.
-          footer: "hidden",
-          footerAction: "hidden",
-          footerActionText: "hidden",
+          footerPageLink: "hidden",
+          // Footer shows "Secured by GitGuide" via globals.css (replaces Clerk branding)
         },
       }}
     >

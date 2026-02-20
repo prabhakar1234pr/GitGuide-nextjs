@@ -31,8 +31,8 @@ export default function Home() {
                     size="lg"
                     className="bg-white text-black hover:bg-white/90 rounded-full px-8 h-14 text-base font-semibold shadow-[0_0_40px_rgba(255,255,255,0.15)] transition-all hover:shadow-[0_0_60px_rgba(255,255,255,0.25)]"
                   >
-                    <Link href="/sign-up">
-                      Try free <ArrowRight className="ml-2 size-5" />
+                    <Link href="/access">
+                      Sign in <ArrowRight className="ml-2 size-5" />
                     </Link>
                   </Button>
                   <Button
@@ -41,7 +41,7 @@ export default function Home() {
                     variant="outline"
                     className="rounded-full border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white h-14 px-8 text-base backdrop-blur-sm"
                   >
-                    <Link href="#demo">Watch demo</Link>
+                    <Link href="/access">Sign up</Link>
                   </Button>
                 </SignedOut>
 
@@ -142,9 +142,15 @@ export default function Home() {
                   size="lg"
                   className="bg-white text-black hover:bg-white/90 rounded-full px-10 h-14 text-base font-semibold shadow-[0_0_40px_rgba(255,255,255,0.15)]"
                 >
-                  <Link href="/sign-up">
-                    Get started free <ArrowRight className="ml-2 size-5" />
-                  </Link>
+                  <Link href="/access">Sign in</Link>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="rounded-full border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white h-14 px-10 text-base font-semibold"
+                >
+                  <Link href="/access">Sign up</Link>
                 </Button>
               </SignedOut>
 

@@ -1,6 +1,19 @@
 import { SignUp } from "@clerk/nextjs";
 
-export default function SignUpPage() {
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ role?: string }>;
+}) {
+  const params = await searchParams;
+  const resolvedRole =
+    params.role === "manager" || params.role === "employee"
+      ? params.role
+      : undefined;
+  const redirectUrl = resolvedRole
+    ? `/dashboard?role=${resolvedRole}`
+    : "/dashboard";
+
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">
       {/* Sign Up Content - Centered */}
@@ -20,16 +33,13 @@ export default function SignUpPage() {
           <SignUp
             routing="path"
             path="/sign-up"
-            forceRedirectUrl="/dashboard"
+            forceRedirectUrl={redirectUrl}
             appearance={{
               elements: {
                 rootBox: "mx-auto",
                 card: "shadow-none border border-zinc-200 rounded-lg",
                 headerTitle: "hidden",
                 headerSubtitle: "hidden",
-                footer: "hidden",
-                footerAction: "hidden",
-                footerActionText: "hidden",
               },
             }}
           />

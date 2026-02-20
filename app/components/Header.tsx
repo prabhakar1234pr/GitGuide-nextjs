@@ -38,13 +38,13 @@ export default function Header() {
                   asChild
                   className="text-white/70 hover:text-white hover:bg-white/10 px-3 h-10 text-[13px]"
                 >
-                  <Link href="/sign-in">Sign in</Link>
+                  <Link href="/access">Sign in</Link>
                 </Button>
                 <Button
                   asChild
                   className="bg-white text-black hover:bg-white/90 rounded-full px-6 h-10 text-[13px] font-semibold"
                 >
-                  <Link href="/sign-up">Get started</Link>
+                  <Link href="/access">Sign up</Link>
                 </Button>
               </SignedOut>
 

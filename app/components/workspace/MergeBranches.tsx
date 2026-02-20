@@ -22,6 +22,7 @@ interface MergeBranchesProps {
   onAbortMerge: () => Promise<void>;
   hasConflicts?: boolean;
   isLoading?: boolean;
+  readOnly?: boolean;
 }
 
 export default function MergeBranches({
@@ -31,6 +32,7 @@ export default function MergeBranches({
   onAbortMerge,
   hasConflicts = false,
   isLoading = false,
+  readOnly = false,
 }: MergeBranchesProps) {
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [branchToMerge, setBranchToMerge] = useState<string | null>(null);
@@ -97,7 +99,7 @@ export default function MergeBranches({
                         variant="outline"
                         size="sm"
                         onClick={onAbortMerge}
-                        disabled={isLoading}
+                        disabled={isLoading || readOnly}
                         className="h-7 text-[10px] border-red-500/30 text-red-400 hover:text-red-300"
                       >
                         Abort Merge
@@ -135,7 +137,7 @@ export default function MergeBranches({
                             setBranchToMerge(branch.name);
                             setMergeDialogOpen(true);
                           }}
-                          disabled={isLoading}
+                          disabled={isLoading || readOnly}
                           className="h-6 px-2 text-[10px] text-zinc-400 hover:text-white"
                         >
                           Merge
@@ -202,7 +204,7 @@ export default function MergeBranches({
             </Button>
             <Button
               onClick={handleMerge}
-              disabled={isMerging || !branchToMerge}
+              disabled={isMerging || !branchToMerge || readOnly}
               className="bg-blue-600 hover:bg-blue-500 text-white"
             >
               {isMerging ? (

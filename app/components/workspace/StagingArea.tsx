@@ -13,6 +13,7 @@ interface StagingAreaProps {
   onUnstage: (files?: string[]) => Promise<void>;
   onViewDiff?: (filePath: string, staged: boolean) => void;
   isLoading?: boolean;
+  readOnly?: boolean;
 }
 
 export default function StagingArea({
@@ -21,6 +22,7 @@ export default function StagingArea({
   onUnstage,
   onViewDiff,
   isLoading = false,
+  readOnly = false,
 }: StagingAreaProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
@@ -67,7 +69,7 @@ export default function StagingArea({
               variant="ghost"
               size="sm"
               onClick={() => handleUnstage()}
-              disabled={isLoading}
+              disabled={isLoading || readOnly}
               className="h-6 px-2 text-[10px] text-zinc-400 hover:text-white"
             >
               Unstage All
@@ -126,7 +128,7 @@ export default function StagingArea({
                         variant="ghost"
                         size="icon"
                         onClick={() => handleUnstage(file)}
-                        disabled={isLoading}
+                        disabled={isLoading || readOnly}
                         className="h-6 w-6 text-zinc-500 hover:text-red-400"
                         title="Unstage"
                       >
@@ -155,7 +157,7 @@ export default function StagingArea({
               variant="ghost"
               size="sm"
               onClick={() => handleStage()}
-              disabled={isLoading}
+              disabled={isLoading || readOnly}
               className="h-6 px-2 text-[10px] text-zinc-400 hover:text-white"
             >
               Stage All
@@ -222,7 +224,7 @@ export default function StagingArea({
                         variant="ghost"
                         size="icon"
                         onClick={() => handleStage(file)}
-                        disabled={isLoading}
+                        disabled={isLoading || readOnly}
                         className="h-6 w-6 text-zinc-500 hover:text-emerald-400"
                         title="Stage"
                       >
