@@ -219,14 +219,17 @@ export default function WorkspaceClient() {
     nextNavigation?.type === "task" ? nextNavigation.taskId : null;
 
   const handleProgressChange = async () => {
-    // Refresh progress when task is completed (to unlock next day if needed)
     if (taskDetails) {
       try {
         const token = await getToken();
         if (!token) return;
 
-        // Refresh progress to unlock next day
         await getProgress(taskDetails.project.project_id, token);
+
+        if (taskId) {
+          const refreshed = await getTaskDetails(taskId, token);
+          setTaskDetails(refreshed);
+        }
       } catch (error) {
         console.error("Failed to refresh progress:", error);
       }

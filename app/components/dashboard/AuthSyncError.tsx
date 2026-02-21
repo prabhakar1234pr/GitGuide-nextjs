@@ -1,10 +1,59 @@
 "use client";
 
+import Link from "next/link";
 import { SignOutButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 
-export default function AuthSyncError() {
+interface AuthSyncErrorProps {
+  isRoleConflict?: boolean;
+  message?: string;
+}
+
+export default function AuthSyncError({
+  isRoleConflict = false,
+  message,
+}: AuthSyncErrorProps) {
+  if (isRoleConflict) {
+    const isManager = message?.toLowerCase().includes("manager");
+    const signInPath = isManager
+      ? "/sign-in?role=manager"
+      : "/sign-in?role=employee";
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] px-6">
+        <div className="max-w-md text-center space-y-4">
+          <div className="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-7 h-7 text-amber-500" />
+          </div>
+          <h2 className="text-xl font-semibold text-white">
+            Wrong sign-in page
+          </h2>
+          <p className="text-zinc-400 text-sm leading-relaxed">
+            {message || "Your account is registered with a different role."}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <SignOutButton>
+              <Button
+                variant="outline"
+                className="border-zinc-600 text-white hover:bg-zinc-800"
+              >
+                Sign out
+              </Button>
+            </SignOutButton>
+            <Button
+              asChild
+              className="bg-white text-zinc-950 hover:bg-zinc-200"
+            >
+              <Link href={signInPath}>
+                Go to {isManager ? "manager" : "employee"} sign-in
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] px-6">
       <div className="max-w-md text-center space-y-4">

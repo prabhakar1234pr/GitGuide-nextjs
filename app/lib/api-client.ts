@@ -173,6 +173,42 @@ export async function listProjectAccess(
   return response.json();
 }
 
+export interface EmployeeProgress {
+  user_id: string;
+  email: string;
+  name: string;
+  github_username: string | null;
+  user_repo_url: string | null;
+  github_connected: boolean;
+  days_completed: number;
+  total_days: number;
+  concepts_completed: number;
+  total_concepts: number;
+  tasks_completed: number;
+  total_tasks: number;
+}
+
+/**
+ * Get progress of all employees for a project (manager only)
+ */
+export async function getEmployeesProgress(
+  projectId: string,
+  token: string | null
+): Promise<{ success: boolean; employees: EmployeeProgress[] }> {
+  if (!token) throw new Error("Authentication required");
+  const response = await fetch(
+    `${API_URL}/api/projects/${projectId}/employees-progress`,
+    { method: "GET", headers: getAuthHeadersClient(token) }
+  );
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(
+      err.detail || `Failed to fetch employees progress (${response.status})`
+    );
+  }
+  return response.json();
+}
+
 /**
  * Revoke project access from an employee (manager only)
  */

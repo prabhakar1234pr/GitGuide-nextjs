@@ -29,6 +29,7 @@ export interface TaskChatRequest {
     suggestions: string[];
     code_quality: string;
   } | null;
+  is_manager?: boolean;
 }
 
 export interface TaskChatResponse {

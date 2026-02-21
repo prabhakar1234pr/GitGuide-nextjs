@@ -17,7 +17,6 @@ import {
   loadTaskConversation,
   listTaskConversations,
   type ConversationListItem,
-  type TaskChatMessage,
 } from "../../lib/api-task-chatbot";
 import {
   Dialog,
@@ -45,15 +44,14 @@ interface ChatPanelProps {
   userCode: UserCodeFile[];
   workspaceId?: string;
   projectId?: string;
+  isOwner?: boolean;
 }
 
 export default function ChatPanel({
   task,
-  concept,
   verificationResult,
   userCode,
-  workspaceId,
-  projectId,
+  isOwner = false,
 }: ChatPanelProps) {
   const { getToken } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -124,7 +122,9 @@ export default function ChatPanel({
             {
               id: "welcome",
               role: "assistant",
-              content: `Hi! I'm here to help you with "${task.title}". What would you like to know?`,
+              content: isOwner
+                ? `Hi! I'm here to help you review "${task.title}". As a manager, you're in view-only mode. What would you like to know?`
+                : `Hi! I'm here to help you with "${task.title}". What would you like to know?`,
               timestamp: new Date(),
             },
           ]);
@@ -152,7 +152,9 @@ export default function ChatPanel({
             {
               id: "welcome",
               role: "assistant",
-              content: `Hi! I'm here to help you with "${task.title}". I have access to your current task details, concept content, and your code. I can help clarify concepts, provide guidance, or answer questions about what you're working on. What would you like to know?`,
+              content: isOwner
+                ? `Hi! I'm here to help you review "${task.title}". As a manager, you're in view-only mode. I can explain concepts, give an overview of what employees need to do, or answer questions about the task. What would you like to know?`
+                : `Hi! I'm here to help you with "${task.title}". I have access to your current task details, concept content, and your code. I can help clarify concepts, provide guidance, or answer questions about what you're working on. What would you like to know?`,
               timestamp: new Date(),
             },
           ]);
@@ -164,7 +166,9 @@ export default function ChatPanel({
           {
             id: "welcome",
             role: "assistant",
-            content: `Hi! I'm here to help you with "${task.title}". I have access to your current task details, concept content, and your code. What would you like to know?`,
+            content: isOwner
+              ? `Hi! I'm here to help you review "${task.title}". As a manager, you're in view-only mode. I can explain concepts or answer questions about the task. What would you like to know?`
+              : `Hi! I'm here to help you with "${task.title}". I have access to your current task details, concept content, and your code. What would you like to know?`,
             timestamp: new Date(),
           },
         ]);
@@ -174,7 +178,7 @@ export default function ChatPanel({
     }
 
     loadHistory();
-  }, [task.task_id, task.title, getToken]);
+  }, [task.task_id, task.title, getToken, isOwner]);
 
   const resetToNewChat = () => {
     setConversationId(null);
@@ -182,7 +186,9 @@ export default function ChatPanel({
       {
         id: "welcome",
         role: "assistant",
-        content: `Hi! I'm here to help you with "${task.title}". What would you like to know?`,
+        content: isOwner
+          ? `Hi! I'm here to help you review "${task.title}". As a manager, you're in view-only mode. What would you like to know?`
+          : `Hi! I'm here to help you with "${task.title}". What would you like to know?`,
         timestamp: new Date(),
       },
     ]);
@@ -227,7 +233,9 @@ export default function ChatPanel({
           {
             id: "welcome",
             role: "assistant",
-            content: `Hi! I'm here to help you with "${task.title}". What would you like to know?`,
+            content: isOwner
+              ? `Hi! I'm here to help you review "${task.title}". As a manager, you're in view-only mode. What would you like to know?`
+              : `Hi! I'm here to help you with "${task.title}". What would you like to know?`,
             timestamp: new Date(),
           },
         ]);
@@ -284,6 +292,7 @@ export default function ChatPanel({
           conversation_id: conversationId,
           user_code: userCode,
           verification,
+          is_manager: isOwner,
         },
         token
       );
@@ -510,7 +519,9 @@ export default function ChatPanel({
           </Button>
         </div>
         <p className="text-[10px] text-zinc-500 mt-2 text-center">
-          Chatbot has access to your task details and generated content
+          {isOwner
+            ? "Chatbot knows you're a manager (view only) and will tailor responses"
+            : "Chatbot has access to your task details and generated content"}
         </p>
       </div>
 

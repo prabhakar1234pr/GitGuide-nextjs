@@ -151,7 +151,29 @@ export default function TaskPanel({
                 </Button>
               )}
           </>
-        ) : !isOwner ? (
+        ) : isOwner ? (
+          nextNavigation?.type === "task" && nextNavigation.taskId ? (
+            <Button
+              asChild
+              className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 h-10 font-bold text-xs uppercase tracking-widest"
+            >
+              <Link
+                href={`/workspace?task=${nextNavigation.taskId}&owner=${isOwner}`}
+              >
+                Continue to next task
+              </Link>
+            </Button>
+          ) : nextNavigation?.projectId ? (
+            <Button
+              asChild
+              className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 h-10 font-bold text-xs uppercase tracking-widest"
+            >
+              <Link href={`/project/${nextNavigation.projectId}`}>
+                Go to Roadmap
+              </Link>
+            </Button>
+          ) : null
+        ) : (
           <Button
             type="button"
             onClick={(e) => {
@@ -169,7 +191,7 @@ export default function TaskPanel({
             )}
             {isVerifying ? "Verifying..." : "Verify Changes"}
           </Button>
-        ) : null}
+        )}
       </div>
     </div>
   );

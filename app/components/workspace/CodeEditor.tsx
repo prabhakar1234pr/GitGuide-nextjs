@@ -243,7 +243,7 @@ export default function CodeEditor({
   useEffect(() => {
     let mounted = true;
     async function initTaskSession() {
-      if (!workspaceId || taskSessionId) return;
+      if (isOwner || !workspaceId || taskSessionId) return;
       try {
         const token = await getToken();
         if (!token || !mounted) return;
@@ -256,6 +256,9 @@ export default function CodeEditor({
           setTaskSessionId(response.session.session_id);
         }
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        // Manager viewing (view-only) - expected, don't log
+        if (msg.includes("Managers cannot start task sessions")) return;
         console.error("Failed to start task session:", err);
       }
     }
@@ -263,7 +266,7 @@ export default function CodeEditor({
     return () => {
       mounted = false;
     };
-  }, [workspaceId, task.task_id, getToken, taskSessionId]);
+  }, [isOwner, workspaceId, task.task_id, getToken, taskSessionId]);
 
   const refreshPreviewServers = useCallback(async () => {
     if (!workspaceId) return;

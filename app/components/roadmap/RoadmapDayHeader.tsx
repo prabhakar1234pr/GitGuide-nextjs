@@ -31,6 +31,7 @@ interface RoadmapDayHeaderProps {
   selectedDayId: string | null;
   onSelectDay: (dayId: string) => void;
   progressMap: Record<string, { progress_status: string }>;
+  isOwner?: boolean;
 }
 
 export default function RoadmapDayHeader({
@@ -38,6 +39,7 @@ export default function RoadmapDayHeader({
   selectedDayId,
   onSelectDay,
   progressMap,
+  isOwner = false,
 }: RoadmapDayHeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -98,6 +100,7 @@ export default function RoadmapDayHeader({
     if (progress) return progress.progress_status;
 
     if (day.day_number === 0) return "todo";
+    if (isOwner) return "todo";
 
     const previousDay = days.find((d) => d.day_number === day.day_number - 1);
     if (previousDay) {

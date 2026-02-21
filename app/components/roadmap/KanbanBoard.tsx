@@ -205,15 +205,26 @@ export default function KanbanBoard({
         }
         await onStartConcept(conceptId);
       }
-      // Logic: Doing -> Done (managers cannot complete - employees only)
+      // Logic: Doing -> Done (employees must complete all tasks first; managers can complete anytime)
       else if (currentStatus === "doing" && targetStatus === "done") {
-        if (isOwner) {
-          setOptimisticUpdates((prev) => {
-            const next = { ...prev };
-            delete next[conceptId];
-            return next;
-          });
-          return;
+        if (!isOwner) {
+          const isSelectedConcept = conceptId === currentConceptId;
+          const details = isSelectedConcept ? conceptDetails : null;
+          const contentRead =
+            conceptProgressMap[conceptId]?.content_read ?? false;
+          const allTasksDone =
+            !details?.tasks?.length ||
+            details.tasks.every(
+              (t) => taskProgress[t.task_id]?.progress_status === "done"
+            );
+          if (!contentRead || !allTasksDone) {
+            setOptimisticUpdates((prev) => {
+              const next = { ...prev };
+              delete next[conceptId];
+              return next;
+            });
+            return;
+          }
         }
         await onCompleteConcept(conceptId);
       }

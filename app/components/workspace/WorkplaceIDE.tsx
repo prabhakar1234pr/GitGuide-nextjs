@@ -111,7 +111,7 @@ export default function WorkplaceIDE({
     } catch {
       // Ignore
     }
-  }, []);
+  }, [task.task_type]);
 
   const toggleFullscreen = async () => {
     try {
@@ -165,6 +165,7 @@ export default function WorkplaceIDE({
             onComplete={handleComplete}
             initialCompleted={isCompleted}
             nextNavigation={nextNavigation}
+            isOwner={isOwner}
           />
         );
 

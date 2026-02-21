@@ -3,16 +3,16 @@ import { SignUp } from "@clerk/nextjs";
 export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string }>;
+  searchParams: Promise<{ role?: string; redirect_url?: string }>;
 }) {
   const params = await searchParams;
   const resolvedRole =
     params.role === "manager" || params.role === "employee"
       ? params.role
       : undefined;
-  const redirectUrl = resolvedRole
-    ? `/dashboard?role=${resolvedRole}`
-    : "/dashboard";
+  const redirectUrl =
+    params.redirect_url ||
+    (resolvedRole ? `/dashboard?role=${resolvedRole}` : "/dashboard");
 
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">

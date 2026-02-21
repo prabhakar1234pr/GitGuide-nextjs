@@ -452,6 +452,11 @@ export interface TaskDetails {
     target_days: number;
     status: string;
     created_at: string;
+    user_repo_url?: string;
+    github_username?: string;
+    user_repo_first_commit?: string;
+    github_consent_accepted?: boolean;
+    is_owner?: boolean;
   };
 }
 

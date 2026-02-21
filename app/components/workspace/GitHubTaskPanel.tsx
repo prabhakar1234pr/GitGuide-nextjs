@@ -3,6 +3,10 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { type Task, completeTask } from "../../lib/api-roadmap";
+import {
+  getWorkspaceByProject,
+  cloneWorkspaceRepo,
+} from "../../lib/api-workspace";
 import { Input } from "../../../components/ui/input";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
@@ -226,6 +230,7 @@ export default function GitHubTaskPanel({
             token: patToken,
             consent_accepted: consentAccepted,
             github_username:
+              project.github_username ||
               extractUsername(project.user_repo_url || project.github_url) ||
               "",
             project_id: project.project_id,
@@ -269,6 +274,16 @@ export default function GitHubTaskPanel({
       setVerificationResult(result);
       if (result.success) {
         await completeTask(project.project_id, task.task_id, token);
+
+        try {
+          const ws = await getWorkspaceByProject(project.project_id, token!);
+          if (ws.workspace) {
+            await cloneWorkspaceRepo(ws.workspace.workspace_id, token!);
+          }
+        } catch {
+          // Non-fatal: workspace remote update can happen on next open
+        }
+
         setStatus("success");
         setIsCompleted(true);
         onComplete();

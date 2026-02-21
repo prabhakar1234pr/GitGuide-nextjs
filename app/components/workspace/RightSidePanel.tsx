@@ -196,6 +196,7 @@ export default function RightSidePanel({
             userCode={userCode}
             workspaceId={workspaceId}
             projectId={projectId}
+            isOwner={isOwner}
           />
         </TabsContent>
       </Tabs>

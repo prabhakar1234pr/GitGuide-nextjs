@@ -38,6 +38,7 @@ export default function ConceptDetailPanel({
   projectId,
   conceptProgress,
   taskProgress,
+  onComplete,
   isOwner = false,
 }: ConceptDetailPanelProps) {
   const router = useRouter();
@@ -378,12 +379,25 @@ export default function ConceptDetailPanel({
           </div>
 
           {/* Helper Footer */}
-          {!allTasksDone && (
+          {!allTasksDone && !isOwner && (
             <div className="mt-4 flex items-center gap-2 p-2.5 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
               <AlertCircle className="w-3.5 h-3.5 text-zinc-600" />
               <p className="text-[10px] text-zinc-500 font-medium">
                 Complete all tasks to finish this concept.
               </p>
+            </div>
+          )}
+
+          {/* Mark as complete button - managers only (employees complete via tasks or drag-and-drop) */}
+          {isOwner && (
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => onComplete()}
+                className="w-full py-2.5 px-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-colors"
+              >
+                Mark as complete
+              </button>
             </div>
           )}
         </div>

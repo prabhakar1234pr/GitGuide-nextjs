@@ -271,6 +271,7 @@ export default function RoadmapPage({
           selectedDayId={selectedDayId}
           onSelectDay={setSelectedDayId}
           progressMap={dayProgressMap}
+          isOwner={isOwner}
         />
       </div>
 

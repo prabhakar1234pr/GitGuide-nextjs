@@ -1,9 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { redirect as nextRedirect } from "next/navigation";
 import { Suspense } from "react";
 import Header from "../components/Header";
 import DashboardContent from "../components/dashboard/DashboardContent";
 import AuthSyncError from "../components/dashboard/AuthSyncError";
+import RedirectHandler from "../components/dashboard/RedirectHandler";
 import Loading from "./loading";
 import Launching from "./launching";
 import { getCurrentUser, listUserProjects, syncUser } from "../lib/api";
@@ -15,6 +16,19 @@ function isUserNotFoundError(error: unknown): boolean {
     msg.toLowerCase().includes("user not found") ||
     msg.toLowerCase().includes("user not found in database")
   );
+}
+
+function isRoleConflictError(error: unknown): {
+  isRoleConflict: boolean;
+  message?: string;
+} {
+  const msg = error instanceof Error ? error.message : String(error);
+  const isRoleConflict =
+    msg.includes("registered as a manager") ||
+    msg.includes("registered as a employee") ||
+    msg.includes("already registered as") ||
+    msg.includes("cannot create a new account with a different role");
+  return { isRoleConflict, message: msg };
 }
 
 // Separate component for async data fetching
@@ -63,12 +77,12 @@ async function BackendGate({ children }: { children: React.ReactNode }) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string }>;
+  searchParams: Promise<{ role?: string; redirect?: string }>;
 }) {
   const { userId } = await auth();
 
   if (!userId) {
-    redirect("/sign-in");
+    nextRedirect("/sign-in");
   }
 
   const params = await searchParams;
@@ -76,14 +90,25 @@ export default async function DashboardPage({
     params.role === "manager" || params.role === "employee"
       ? params.role
       : undefined;
+  const redirect = params.redirect;
+
+  // Wait for backend before sync/user calls (same as BackendGate)
+  await waitForBackend();
 
   // Sync user data to database when they access the dashboard (include role from sign-up redirect)
   let authSyncFailed = false;
+  let roleConflictMessage: string | undefined;
   try {
     await syncUser(role);
   } catch (error) {
     console.error("Failed to sync user to database:", error);
-    if (isUserNotFoundError(error)) authSyncFailed = true;
+    const roleCheck = isRoleConflictError(error);
+    if (roleCheck.isRoleConflict) {
+      authSyncFailed = true;
+      roleConflictMessage = roleCheck.message;
+    } else if (isUserNotFoundError(error)) {
+      authSyncFailed = true;
+    }
   }
 
   let userRole: string | undefined = role;
@@ -103,13 +128,18 @@ export default async function DashboardPage({
     return (
       <>
         <Header />
-        <AuthSyncError />
+        {roleConflictMessage ? (
+          <AuthSyncError isRoleConflict message={roleConflictMessage} />
+        ) : (
+          <AuthSyncError />
+        )}
       </>
     );
   }
 
   return (
     <>
+      {redirect && <RedirectHandler redirect={redirect} />}
       <Header />
       <Suspense fallback={<Launching />}>
         <BackendGate>

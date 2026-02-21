@@ -7,6 +7,7 @@ import {
   createFile,
   deleteFile,
   renameFile,
+  cloneWorkspaceRepo,
   type FileItem,
 } from "../../lib/api-workspace";
 import { useWorkspaceStore } from "../../hooks/useWorkspaceStore";
@@ -97,6 +98,7 @@ export default function FileExplorer({
   const [isRenaming, setIsRenaming] = useState(false);
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
   const [newFileNameForRename, setNewFileNameForRename] = useState("");
+  const hasAutoClonedRef = useRef(false);
 
   // Drag and drop state
   const [draggedItem, setDraggedItem] = useState<FileItem | null>(null);
@@ -120,6 +122,46 @@ export default function FileExplorer({
   useEffect(() => {
     loadRootFiles();
   }, [loadRootFiles]);
+
+  // Auto-clone when workspace is empty (e.g. task 1). Files persist in Docker volume.
+  useEffect(() => {
+    if (
+      readOnly ||
+      hasAutoClonedRef.current ||
+      isLoading ||
+      rootFiles.length > 0
+    ) {
+      return;
+    }
+    hasAutoClonedRef.current = true;
+    let mounted = true;
+    (async () => {
+      try {
+        const token = await getToken();
+        if (!token || !mounted) return;
+        await cloneWorkspaceRepo(workspaceId, token);
+        if (mounted) {
+          await loadRootFiles();
+          onRefresh?.();
+          onGitRefresh?.();
+        }
+      } catch (err) {
+        console.warn("Auto-clone failed:", err);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [
+    workspaceId,
+    readOnly,
+    isLoading,
+    rootFiles.length,
+    getToken,
+    loadRootFiles,
+    onRefresh,
+    onGitRefresh,
+  ]);
 
   const loadChildren = useCallback(
     async (path: string) => {

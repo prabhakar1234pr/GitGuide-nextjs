@@ -42,6 +42,7 @@ import {
   Clock,
   Calendar,
   UserPlus,
+  Users,
 } from "lucide-react";
 
 const CreateProjectModal = dynamic(
@@ -284,13 +285,15 @@ export default function DashboardContent({
               <option value="oldest-first">Oldest first</option>
             </select>
 
-            <Button
-              onClick={() => setIsModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-500 text-white rounded-full px-5 h-10 shadow-lg shadow-blue-900/20 transition-all flex items-center justify-start gap-2.5 leading-none"
-            >
-              <Plus className="w-4 h-4 shrink-0" />
-              <span className="relative top-[0.5px]">New Guide</span>
-            </Button>
+            {mounted && userRole === "manager" && (
+              <Button
+                onClick={() => setIsModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-500 text-white rounded-full px-5 h-10 shadow-lg shadow-blue-900/20 transition-all flex items-center justify-start gap-2.5 leading-none"
+              >
+                <Plus className="w-4 h-4 shrink-0" />
+                <span className="relative top-[0.5px]">New Guide</span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -372,18 +375,20 @@ export default function DashboardContent({
 
           {viewType === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {/* Empty state / Create card */}
-              <Card
-                className="group border-2 border-dashed border-zinc-800 hover:border-zinc-700 bg-transparent hover:bg-zinc-900/50 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[240px]"
-                onClick={() => setIsModalOpen(true)}
-              >
-                <div className="w-12 h-12 bg-zinc-900 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform border border-zinc-800">
-                  <Plus className="w-6 h-6 text-zinc-500 group-hover:text-white" />
-                </div>
-                <p className="text-sm font-medium text-zinc-500 group-hover:text-zinc-300">
-                  Create new guide
-                </p>
-              </Card>
+              {/* Empty state / Create card - managers only */}
+              {mounted && userRole === "manager" && (
+                <Card
+                  className="group border-2 border-dashed border-zinc-800 hover:border-zinc-700 bg-transparent hover:bg-zinc-900/50 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[240px]"
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  <div className="w-12 h-12 bg-zinc-900 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform border border-zinc-800">
+                    <Plus className="w-6 h-6 text-zinc-500 group-hover:text-white" />
+                  </div>
+                  <p className="text-sm font-medium text-zinc-500 group-hover:text-zinc-300">
+                    Create new guide
+                  </p>
+                </Card>
+              )}
 
               {sortedProjects.map((project) => (
                 <Card
@@ -420,6 +425,17 @@ export default function DashboardContent({
                           >
                             <UserPlus className="w-4 h-4 mr-2" />
                             Grant access
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() =>
+                              router.push(
+                                `/project/${project.project_id}/progress`
+                              )
+                            }
+                          >
+                            <Users className="w-4 h-4 mr-2" />
+                            Employee Progress
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-red-400 focus:text-red-400 focus:bg-red-400/10 cursor-pointer"
@@ -534,6 +550,18 @@ export default function DashboardContent({
                           >
                             <UserPlus className="w-4 h-4 mr-2" />
                             Grant access
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(
+                                `/project/${project.project_id}/progress`
+                              );
+                            }}
+                          >
+                            <Users className="w-4 h-4 mr-2" />
+                            Employee Progress
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-red-400 focus:text-red-400 focus:bg-red-400/10 cursor-pointer"

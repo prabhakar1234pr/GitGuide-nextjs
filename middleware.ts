@@ -1,11 +1,11 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import type { NextMiddleware } from "next/server";
-import type { NextRequest } from "next/server";
 
 const isPublicRoute = createRouteMatcher([
   "/",
   "/access",
+  "/invite",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/public(.*)",
