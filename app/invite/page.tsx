@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
@@ -8,6 +9,23 @@ import { Loader2 } from "lucide-react";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function InvitePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white flex items-center justify-center px-6">
+          <div className="text-center">
+            <Loader2 className="w-10 h-10 text-zinc-400 animate-spin mx-auto mb-4" />
+            <p className="text-zinc-600">Loading…</p>
+          </div>
+        </div>
+      }
+    >
+      <InviteContent />
+    </Suspense>
+  );
+}
+
+function InviteContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = useMemo(() => searchParams.get("token"), [searchParams]);
