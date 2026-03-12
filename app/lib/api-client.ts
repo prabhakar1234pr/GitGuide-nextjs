@@ -130,17 +130,21 @@ export async function deleteProject(projectId: string, token: string | null) {
 
 /**
  * Grant project access to an employee by email (manager only)
+ * Pass frontendBaseUrl so invite link uses the current domain (e.g. crysivo.com)
  */
 export async function grantProjectAccess(
   projectId: string,
   email: string,
-  token: string | null
+  token: string | null,
+  frontendBaseUrl?: string
 ) {
   if (!token) throw new Error("Authentication required");
+  const body: { email: string; frontend_base_url?: string } = { email };
+  if (frontendBaseUrl) body.frontend_base_url = frontendBaseUrl;
   const response = await fetch(`${API_URL}/api/projects/${projectId}/access`, {
     method: "POST",
     headers: getAuthHeadersClient(token),
-    body: JSON.stringify({ email }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));

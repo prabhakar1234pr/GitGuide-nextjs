@@ -54,7 +54,12 @@ export default function GrantAccessPage() {
     try {
       const token = await getToken();
       if (!token) return;
-      await grantProjectAccess(projectId, trimmed, token);
+      await grantProjectAccess(
+        projectId,
+        trimmed,
+        token,
+        typeof window !== "undefined" ? window.location.origin : undefined
+      );
       setEmail("");
       await loadAccess();
     } catch (e) {
