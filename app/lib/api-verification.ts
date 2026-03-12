@@ -1,8 +1,13 @@
 /**
  * API client for task verification endpoints.
+ * Verification requires Docker/workspace access, so it runs on the workspace service.
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_WORKSPACE_API_BASE_URL ||
+  (process.env.NODE_ENV === "development"
+    ? "http://localhost:8080"
+    : "https://workspaces.gitguide.dev");
 
 export interface RequirementCheck {
   met: boolean;
@@ -39,7 +44,8 @@ export async function verifyTask(
     throw new Error("Authentication token required");
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}/verify`, {
+  const base = API_BASE_URL.replace(/\/$/, "");
+  const response = await fetch(`${base}/api/tasks/${taskId}/verify`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
