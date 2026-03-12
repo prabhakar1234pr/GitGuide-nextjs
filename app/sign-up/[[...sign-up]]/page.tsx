@@ -10,9 +10,14 @@ export default async function SignUpPage({
     params.role === "manager" || params.role === "employee"
       ? params.role
       : undefined;
+  // Use absolute URL when NEXT_PUBLIC_APP_URL is set (production) so OAuth redirect lands on correct domain
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  const dashboardPath = resolvedRole
+    ? `/dashboard?role=${resolvedRole}`
+    : "/dashboard";
   const redirectUrl =
     params.redirect_url ||
-    (resolvedRole ? `/dashboard?role=${resolvedRole}` : "/dashboard");
+    (baseUrl ? `${baseUrl}${dashboardPath}` : dashboardPath);
 
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">

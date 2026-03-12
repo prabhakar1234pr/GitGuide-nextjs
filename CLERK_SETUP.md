@@ -1,6 +1,16 @@
-# Clerk Authentication Setup (GitGuide)
+# Clerk Authentication Setup (Crysivo)
 
-Configure your Clerk project (e.g., G1901) for GitGuide with the following settings.
+Configure your Clerk project for Crysivo with the following settings.
+
+## 0. Disable Organizations (Required for Manager/Employee Sign-Up)
+
+**If new users are asked to "join organization" or "create organization" and get stuck:**
+
+1. Go to [Clerk Dashboard](https://dashboard.clerk.com) → your project
+2. Navigate to **Configure** → **Organizations**
+3. **Turn OFF** Organizations completely
+
+Crysivo uses its own manager/employee roles in the backend—not Clerk Organizations. Having Organizations enabled causes sign-up to fail.
 
 ## 1. Gmail and Outlook Only
 
@@ -26,11 +36,16 @@ To require users to provide a username:
 
 With social sign-in, new users will see a “complete your profile” step to enter their username after the first OAuth step.
 
-## 3. Branding: “Secured by GitGuide”
+## 3. Branding: “Secured by Crysivo”
 
-“Powered by Clerk” branding is replaced with “Secured by GitGuide” via:
+“Powered by Clerk” branding is replaced with “Secured by Crysivo” via:
 
 - `app/globals.css` – overrides footer content for SignIn, SignUp, and UserButton
+
+## 3.1 Production Redirect (Optional)
+
+For production (e.g. crysivo.com), set `NEXT_PUBLIC_APP_URL=https://crysivo.com` in Vercel so sign-up OAuth redirects land on the correct domain.
+
 - Do not set `footer: "hidden"` in `appearance.elements`; the footer must render for this override to work
 
 ## 4. Environment Variables
