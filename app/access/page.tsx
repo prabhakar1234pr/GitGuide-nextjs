@@ -12,7 +12,7 @@ export default function AccessPage() {
             href="/"
             className="text-zinc-900 font-semibold text-lg tracking-tight hover:opacity-80"
           >
-            GitGuide
+            Crysivo
           </Link>
           <div className="flex items-center gap-4">
             <Link
@@ -44,7 +44,7 @@ export default function AccessPage() {
               <h2 className="text-2xl font-bold text-zinc-900">For Managers</h2>
             </div>
             <p className="text-zinc-600 text-[15px] leading-relaxed mb-8">
-              Create learning guides from GitHub repos, assign them to your
+              Create learning projects from GitHub repos, assign them to your
               team, and track progress across your organization.
             </p>
             <div className="space-y-4">
@@ -80,7 +80,7 @@ export default function AccessPage() {
               </h2>
             </div>
             <p className="text-zinc-600 text-[15px] leading-relaxed mb-8">
-              Get assigned guides, work through concepts and tasks, and build
+              Get assigned projects, work through concepts and tasks, and build
               real projects in the workspace. Verify your progress as you learn.
             </p>
             <div className="space-y-4">

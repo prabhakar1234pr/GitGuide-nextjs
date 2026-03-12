@@ -21,13 +21,13 @@ export default async function SignUpPage({
         <div className="w-full max-w-md -mt-16">
           <div className="mb-6 text-center">
             <h1 className="text-[24px] font-semibold tracking-tight text-zinc-900 mb-2">
-              Get started with GitGuide
+              Get started with Crysivo
             </h1>
             <p className="text-[14px] text-zinc-600">
               Transform repositories into learning journeys
             </p>
             <p className="mt-2 text-[13px] text-zinc-500">
-              Sign up to get started with GitGuide
+              Sign up to get started with Crysivo
             </p>
           </div>
           <SignUp

@@ -494,7 +494,7 @@ function Scene4() {
 }
 
 // Main composition
-export function GitGuideExplainerComposition() {
+export function CrysivoExplainerComposition() {
   return (
     <AbsoluteFill>
       <AnimatedBackground />
@@ -558,7 +558,7 @@ export default function ExplainerVideo() {
     >
       <Player
         ref={playerRef}
-        component={GitGuideExplainerComposition}
+        component={CrysivoExplainerComposition}
         durationInFrames={300}
         fps={30}
         compositionWidth={1280}

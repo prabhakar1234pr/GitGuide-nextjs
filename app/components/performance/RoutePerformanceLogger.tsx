@@ -13,7 +13,7 @@ type NavStartDetail = {
 
 declare global {
   interface Window {
-    __gitguidePerf?: {
+    __crysivoPerf?: {
       patched?: boolean;
       lastNavStart?: NavStartDetail;
       logs?: Array<
@@ -30,15 +30,15 @@ declare global {
   }
 }
 
-const NAV_START_EVENT = "gitguide:navigation-start";
+const NAV_START_EVENT = "crysivo:navigation-start";
 
 function ensureHistoryPatched() {
   if (typeof window === "undefined") return;
-  window.__gitguidePerf ??= { logs: [] };
-  if (window.__gitguidePerf.patched) return;
+  window.__crysivoPerf ??= { logs: [] };
+  if (window.__crysivoPerf.patched) return;
 
   const emit = (detail: NavStartDetail) => {
-    window.__gitguidePerf!.lastNavStart = detail;
+    window.__crysivoPerf!.lastNavStart = detail;
     window.dispatchEvent(
       new CustomEvent<NavStartDetail>(NAV_START_EVENT, { detail })
     );
@@ -74,7 +74,7 @@ function ensureHistoryPatched() {
     });
   });
 
-  window.__gitguidePerf.patched = true;
+  window.__crysivoPerf.patched = true;
 }
 
 function logInitialLoad() {
@@ -86,7 +86,7 @@ function logInitialLoad() {
   if (!nav) return;
 
   const ms = Math.round(nav.duration);
-  window.__gitguidePerf?.logs?.push({
+  window.__crysivoPerf?.logs?.push({
     kind: "initial-load",
     url: window.location.pathname,
     ms,
@@ -114,15 +114,15 @@ export function RoutePerformanceLogger() {
 
   useEffect(() => {
     const from = lastPathRef.current;
-    const start = lastStartRef.current ?? window.__gitguidePerf?.lastNavStart;
+    const start = lastStartRef.current ?? window.__crysivoPerf?.lastNavStart;
     lastPathRef.current = pathname;
 
     if (!start) return;
     const ms = Math.max(0, Math.round(performance.now() - start.ts));
 
-    window.__gitguidePerf ??= { logs: [] };
-    window.__gitguidePerf.logs ??= [];
-    window.__gitguidePerf.logs.push({
+    window.__crysivoPerf ??= { logs: [] };
+    window.__crysivoPerf.logs ??= [];
+    window.__crysivoPerf.logs.push({
       kind: "route-change",
       to: pathname,
       from,

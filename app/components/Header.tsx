@@ -20,7 +20,7 @@ export default function Header() {
             <Layout className="w-5 h-5 text-white/95" />
           </div>
           <span className="text-lg font-semibold text-white tracking-tight">
-            GitGuide
+            Crysivo
           </span>
         </Link>
 

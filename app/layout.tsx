@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GitGuide — AI Tutor for GitHub Repositories",
+  title: "Crysivo — AI Tutor for GitHub Repositories",
   description:
     "Transform GitHub repositories into personalized learning journeys with AI-powered explanations and interactive tutorials.",
 };
@@ -69,7 +69,7 @@ export default function RootLayout({
           card: "shadow-none border border-zinc-200",
           footerActionLink: "text-zinc-900 hover:text-zinc-700",
           footerPageLink: "hidden",
-          // Footer shows "Secured by GitGuide" via globals.css (replaces Clerk branding)
+          // Footer shows "Secured by Crysivo" via globals.css (replaces Clerk branding)
         },
       }}
     >

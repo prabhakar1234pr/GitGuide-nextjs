@@ -328,7 +328,7 @@ export default function DocsPage() {
           {/* Title Section */}
           <header className="pt-12 pb-10 border-b border-stone-200 mb-12">
             <p className="text-amber-600 text-sm font-semibold tracking-wide uppercase mb-4">
-              Learning Guide
+              Learning Project
             </p>
             <h1
               className="text-[2.5rem] leading-[1.15] font-bold text-stone-900 tracking-tight mb-5"

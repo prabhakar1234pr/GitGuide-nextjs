@@ -291,7 +291,7 @@ export default function DashboardContent({
                 className="bg-blue-600 hover:bg-blue-500 text-white rounded-full px-5 h-10 shadow-lg shadow-blue-900/20 transition-all flex items-center justify-start gap-2.5 leading-none"
               >
                 <Plus className="w-4 h-4 shrink-0" />
-                <span className="relative top-[0.5px]">New Guide</span>
+                <span className="relative top-[0.5px]">New Project</span>
               </Button>
             )}
           </div>
@@ -305,7 +305,7 @@ export default function DashboardContent({
                 <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
                 <div>
                   <p className="text-blue-100 font-medium">
-                    Generating your GitGuides...
+                    Generating your projects...
                   </p>
                   <p className="text-blue-400/70 text-sm">
                     {processingProjects.length} project
@@ -385,7 +385,7 @@ export default function DashboardContent({
                     <Plus className="w-6 h-6 text-zinc-500 group-hover:text-white" />
                   </div>
                   <p className="text-sm font-medium text-zinc-500 group-hover:text-zinc-300">
-                    Create new guide
+                    Create new project
                   </p>
                 </Card>
               )}

@@ -13,7 +13,7 @@ const usePathnameMock = jest.requireMock("next/navigation")
 describe("RoutePerformanceLogger", () => {
   beforeEach(() => {
     // clean any global state from prior tests
-    delete (window as unknown as { __gitguidePerf?: unknown }).__gitguidePerf;
+    delete (window as unknown as { __crysivoPerf?: unknown }).__crysivoPerf;
     usePathnameMock.mockReset();
   });
 

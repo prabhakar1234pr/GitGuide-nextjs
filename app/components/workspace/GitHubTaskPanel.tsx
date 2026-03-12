@@ -647,12 +647,12 @@ export default function GitHubTaskPanel({
                         I understand and agree:
                       </strong>{" "}
                       To ensure accurate task verification and progress
-                      tracking, GitGuide will automatically reset any commits
+                      tracking, Crysivo will automatically reset any commits
                       made outside the platform (via GitHub web UI, local git,
                       or other tools). This ensures our verification system can
                       accurately check your work. Your code will always be
                       stored in your GitHub repository, and all commits made
-                      through GitGuide are permanent.
+                      through Crysivo are permanent.
                     </label>
                   </div>
                 </div>

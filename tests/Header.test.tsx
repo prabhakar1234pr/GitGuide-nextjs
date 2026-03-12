@@ -32,6 +32,6 @@ describe("Header", () => {
     render(<Header />);
     expect(screen.getByText("Sign in")).toBeInTheDocument();
     expect(screen.getByText("Sign up")).toBeInTheDocument();
-    expect(screen.getByText("GitGuide")).toBeInTheDocument();
+    expect(screen.getByText("Crysivo")).toBeInTheDocument();
   });
 });

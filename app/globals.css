@@ -283,7 +283,7 @@ p {
 }
 
 .gg-clerk-userbutton-footer::after {
-  content: "Secured by GitGuide";
+  content: "Secured by Crysivo";
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -309,7 +309,7 @@ p {
 
 .cl-signIn-root .cl-footer::after,
 .cl-signUp-root .cl-footer::after {
-  content: "Secured by GitGuide";
+  content: "Secured by Crysivo";
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;

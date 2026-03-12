@@ -23,7 +23,7 @@ export default function ExternalCommitsNotification({
           External commits detected
         </div>
         <div className="text-[11px] text-zinc-400">
-          {commits.length} commit(s) were pushed outside GitGuide.
+          {commits.length} commit(s) were pushed outside Crysivo.
         </div>
         <div className="mt-2 flex items-center gap-2">
           <Button

@@ -93,7 +93,7 @@ export default function CreateProjectModal({
             </div>
             <div>
               <DialogTitle className="text-xl font-bold text-white">
-                Create a GitGuide
+                Create a Project
               </DialogTitle>
               <p className="text-xs text-zinc-500 font-medium">
                 Build real projects from GitHub

@@ -172,7 +172,7 @@ export default function Home() {
         {/* Footer */}
         <footer className="relative border-t border-white/10 py-8">
           <div className="relative max-w-7xl mx-auto px-6 text-center text-sm text-white/40">
-            GitGuide — Learn codebases, not documentation.
+            Crysivo — Learn codebases, not documentation.
           </div>
         </footer>
       </main>
