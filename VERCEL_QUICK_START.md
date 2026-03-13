@@ -59,7 +59,7 @@ Visit your Vercel URL and test:
 
 - **API:** `https://gitguide-api-qonfz7xtjq-uc.a.run.app`
 - **Roadmap:** `https://gitguide-roadmap-qonfz7xtjq-uc.a.run.app`
-- **Workspace VM:** `http://35.222.130.245:8080`
+- **Workspace VM:** `http://35.192.92.135:8080`
 
 ---
 

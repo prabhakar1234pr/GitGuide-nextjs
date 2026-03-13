@@ -8,7 +8,7 @@ Complete guide to deploy your Next.js frontend to Vercel and connect it to your 
 
 - API URL: `https://gitguide-api-qonfz7xtjq-uc.a.run.app`
 - Roadmap URL: `https://gitguide-roadmap-qonfz7xtjq-uc.a.run.app`
-- Workspace VM: `http://35.222.130.245:8080`
+- Workspace VM: `http://35.192.92.135:8080`
 
 ✅ Clerk account set up with:
 
