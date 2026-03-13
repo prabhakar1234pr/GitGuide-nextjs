@@ -126,9 +126,21 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
+    const KEEPALIVE_INTERVAL_MS = 20000; // 20s - keep connection alive through load balancer
+    let keepaliveId: ReturnType<typeof setInterval> | null = null;
+
     ws.onopen = () => {
       log("WS_OPEN", "WebSocket connection opened");
       // Status will be set to 'connected' when we receive the connected message
+      keepaliveId = setInterval(() => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          try {
+            wsRef.current.send(JSON.stringify({ type: "ping" }));
+          } catch {
+            /* ignore */
+          }
+        }
+      }, KEEPALIVE_INTERVAL_MS);
     };
 
     ws.onmessage = (event) => {
@@ -174,6 +186,10 @@ export function useTerminal(options: UseTerminalOptions): UseTerminalReturn {
     };
 
     ws.onclose = (event) => {
+      if (keepaliveId) {
+        clearInterval(keepaliveId);
+        keepaliveId = null;
+      }
       log(
         "WS_CLOSE",
         `WebSocket closed - code: ${event.code}, reason: ${event.reason}`
