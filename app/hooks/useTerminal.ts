@@ -5,8 +5,8 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 
-// For WebSocket, we need the VM URL directly (WebSockets can't go through HTTP proxy)
-// In production, this should be the VM's HTTPS WebSocket URL (wss://)
+// For WebSocket, we need direct URL (WebSockets can't go through HTTP proxy).
+// Production uses HTTPS load balancer at workspaces.gitguide.dev.
 const API_BASE =
   process.env.NEXT_PUBLIC_WORKSPACE_API_BASE_URL ||
   (typeof window !== "undefined" && window.location.hostname !== "localhost"

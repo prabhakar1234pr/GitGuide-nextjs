@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 const VM_BASE_URL =
   process.env.WORKSPACE_API_BASE_URL ||
   (process.env.NODE_ENV === "production"
-    ? "http://35.192.92.135:8080"
+    ? "https://workspaces.gitguide.dev"
     : "http://localhost:8002");
 
 export async function POST(

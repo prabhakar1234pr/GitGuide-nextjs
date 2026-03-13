@@ -5,11 +5,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-// VM workspace service URL. Set WORKSPACE_API_BASE_URL in Vercel (e.g. http://VM_IP:8080)
+// VM workspace service. Use HTTPS load balancer in production.
 const VM_BASE_URL =
   process.env.WORKSPACE_API_BASE_URL ||
   (process.env.NODE_ENV === "production"
-    ? "http://35.192.92.135:8080"
+    ? "https://workspaces.gitguide.dev"
     : "http://localhost:8002");
 
 export async function OPTIONS() {
