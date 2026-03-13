@@ -3,10 +3,11 @@
  * Task sessions require Docker access, so they run on the workspace VM
  */
 
+// Use empty string to go through Next.js proxy (avoids mixed content)
 const API_BASE =
   process.env.NEXT_PUBLIC_WORKSPACE_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "";
+  (process.env.NODE_ENV === "development" ? "http://localhost:8002" : "");
 
 export interface TaskSession {
   session_id: string;

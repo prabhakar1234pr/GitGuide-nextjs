@@ -5,11 +5,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-// Use HTTPS domain in production, fallback to local Docker Compose for development
+// VM workspace service URL. Set WORKSPACE_API_BASE_URL in Vercel (e.g. http://VM_IP:8080)
 const VM_BASE_URL =
   process.env.WORKSPACE_API_BASE_URL ||
   (process.env.NODE_ENV === "production"
-    ? "https://workspaces.gitguide.dev"
+    ? "http://35.192.92.135:8080"
     : "http://localhost:8002");
 
 export async function OPTIONS() {

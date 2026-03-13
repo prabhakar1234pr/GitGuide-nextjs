@@ -3,11 +3,10 @@
  * Verification requires Docker/workspace access, so it runs on the workspace service.
  */
 
+// Use empty string to go through Next.js proxy (avoids mixed content)
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_WORKSPACE_API_BASE_URL ||
-  (process.env.NODE_ENV === "development"
-    ? "http://localhost:8080"
-    : "https://workspaces.gitguide.dev");
+  (process.env.NODE_ENV === "development" ? "http://localhost:8002" : "");
 
 export interface RequirementCheck {
   met: boolean;

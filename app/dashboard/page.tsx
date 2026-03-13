@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
 import { redirect as nextRedirect } from "next/navigation";
 import { Suspense } from "react";
 import Header from "../components/Header";
@@ -86,10 +87,22 @@ export default async function DashboardPage({
   }
 
   const params = await searchParams;
-  const role =
+  let role =
     params.role === "manager" || params.role === "employee"
       ? params.role
       : undefined;
+
+  // Fallback: role from cookie (set on sign-up page, survives OAuth redirect)
+  if (!role) {
+    const cookieStore = await cookies();
+    const cookieRole = cookieStore.get("crysivo_signup_role")?.value;
+    if (cookieRole === "manager" || cookieRole === "employee") {
+      role = cookieRole;
+      // Clear cookie after use
+      cookieStore.delete("crysivo_signup_role");
+    }
+  }
+
   const redirect = params.redirect;
 
   // Wait for backend before sync/user calls (same as BackendGate)

@@ -1,4 +1,8 @@
 import { SignUp } from "@clerk/nextjs";
+import { cookies } from "next/headers";
+
+const ROLE_COOKIE = "crysivo_signup_role";
+const ROLE_COOKIE_MAX_AGE = 60 * 10; // 10 minutes
 
 export default async function SignUpPage({
   searchParams,
@@ -10,6 +14,19 @@ export default async function SignUpPage({
     params.role === "manager" || params.role === "employee"
       ? params.role
       : undefined;
+
+  // Store role in cookie so it survives OAuth redirect (Clerk can drop query params)
+  const cookieStore = await cookies();
+  if (resolvedRole) {
+    cookieStore.set(ROLE_COOKIE, resolvedRole, {
+      path: "/",
+      maxAge: ROLE_COOKIE_MAX_AGE,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+  }
+
   // Use absolute URL when NEXT_PUBLIC_APP_URL is set (production) so OAuth redirect lands on correct domain
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
   const dashboardPath = resolvedRole
