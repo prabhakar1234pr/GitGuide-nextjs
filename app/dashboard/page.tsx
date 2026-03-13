@@ -87,7 +87,7 @@ export default async function DashboardPage({
   }
 
   const params = await searchParams;
-  let role =
+  let role: "manager" | "employee" | undefined =
     params.role === "manager" || params.role === "employee"
       ? params.role
       : undefined;
